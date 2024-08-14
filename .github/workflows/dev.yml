@@ -19,9 +19,6 @@ jobs:
     strategy:
       matrix:
         python-versions: ['3.9', '3.10', '3.11']
-        # github action doesn't goes well with windows due to docker support
-        # github action doesn't goes well with macos due to `no docker command`
-        #os: [ubuntu-latest, windows-latest, macos-latest]
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     # map step outputs to job outputs so they can be share among jobs
@@ -31,6 +28,9 @@ jobs:
       repo_name: ${{ steps.variables_step.outputs.repo_name }}
       repo_owner: ${{ steps.variables_step.outputs.repo_owner }}
       build_number: ${{ steps.variables_step.outputs.build_number }}
+    permissions:
+      id-token: write
+      contents: write
 
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
