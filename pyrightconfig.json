@@ -1,0 +1,21 @@
+{
+  "comments": "This is for pylance extension of vscode. Remove me if you're not intented to use vscode.",
+  "exclude": [
+    ".git",
+    ".eggs",
+    ".github",
+    ".history",
+    ".idea",
+    ".tox",
+    ".vscode",
+    "docs",
+    "**/__pycache__",
+    "centraal-api_centraal_client_flow.egg-info"
+  ],
+  "ignore": [
+    "src/oldstuff"
+  ],
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+  "pythonVersion": "3.11"
+}
