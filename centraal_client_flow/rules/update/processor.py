@@ -1,7 +1,8 @@
-from azure.functions import Blueprint, ServiceBusMessage
 from typing import Callable, List
 
-from azure.servicebus import ServiceBusClient, ServiceBusMessage as SBMessage
+from azure.functions import Blueprint, ServiceBusMessage
+from azure.servicebus import ServiceBusClient
+from azure.servicebus import ServiceBusMessage as SBMessage
 
 from centraal_client_flow.connections.cosmosdb import CosmosDBSingleton
 

@@ -1,6 +1,8 @@
-from azure.functions import Blueprint, TimerRequest
-from centraal_client_flow.connections.service_bus import ServiceBusClientSingleton
 from typing import Callable
+
+from azure.functions import Blueprint, TimerRequest
+
+from centraal_client_flow.connections.service_bus import ServiceBusClientSingleton
 
 
 class TimerBase:

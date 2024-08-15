@@ -1,6 +1,8 @@
-from azure.functions import Blueprint, ServiceBusMessage
-from .strategy import IntegrationStrategy
 from typing import Callable
+
+from azure.functions import Blueprint, ServiceBusMessage
+
+from .strategy import IntegrationStrategy
 
 
 class IntegrationBase:

@@ -1,5 +1,7 @@
 from typing import Callable
+
 from azure.functions import Blueprint, HttpRequest, HttpResponse
+
 from centraal_client_flow.connections.service_bus import ServiceBusClientSingleton
 
 
