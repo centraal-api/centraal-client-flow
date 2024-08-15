@@ -46,6 +46,36 @@ azure-core = ">=1.25.1"
 typing-extensions = ">=4.6.0"
 
 [[package]]
+name = "azure-functions"
+version = "1.20.0"
+description = "Azure Functions for Python"
+optional = false
+python-versions = "*"
+files = [
+    {file = "azure-functions-1.20.0.tar.gz", hash = "sha256:437e8889d7a75379159b457589cb74f6f966d3576067ae6649fafcd9058102e1"},
+    {file = "azure_functions-1.20.0-py3-none-any.whl", hash = "sha256:1d4ad15b10768b78046154d1da392e99634b64b4821dd091d5b9fe3600c49573"},
+]
+
+[package.extras]
+dev = ["azure-functions-durable", "coverage", "flake8 (>=4.0.1,<4.1.0)", "flake8-logging-format", "mypy", "pytest", "pytest-cov", "requests (==2.*)"]
+
+[[package]]
+name = "azure-servicebus"
+version = "7.12.2"
+description = "Microsoft Azure Service Bus Client Library for Python"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "azure-servicebus-7.12.2.tar.gz", hash = "sha256:a6a3c5f79ed5bef101d9e3e3c986a103b200e26c4953c47a52f552c757e45eca"},
+    {file = "azure_servicebus-7.12.2-py3-none-any.whl", hash = "sha256:505015e894ba82b5419ebf825b47661a315a04359a42087f2f75494bdcbb214b"},
+]
+
+[package.dependencies]
+azure-core = ">=1.28.0"
+isodate = ">=0.6.0"
+typing-extensions = ">=4.6.0"
+
+[[package]]
 name = "backports-tarfile"
 version = "1.2.0"
 description = "Backport of CPython tarfile module"
@@ -610,6 +640,20 @@ files = [
     {file = "iniconfig-2.0.0-py3-none-any.whl", hash = "sha256:b6a85871a79d2e3b22d2d1b94ac2824226a63c6b741c88f7ae975f18b6778374"},
     {file = "iniconfig-2.0.0.tar.gz", hash = "sha256:2d91e135bf72d31a410b17c16da610a82cb55f6b0477d1a902134b24a455b8b3"},
 ]
+
+[[package]]
+name = "isodate"
+version = "0.6.1"
+description = "An ISO 8601 date/time/duration parser and formatter"
+optional = false
+python-versions = "*"
+files = [
+    {file = "isodate-0.6.1-py2.py3-none-any.whl", hash = "sha256:0751eece944162659049d35f4f549ed815792b38793f07cf73381c1c87cbed96"},
+    {file = "isodate-0.6.1.tar.gz", hash = "sha256:48c5881de7e8b0a0d648cb024c8062dc84e7b840ed81e864c7614fd3c127bde9"},
+]
+
+[package.dependencies]
+six = "*"
 
 [[package]]
 name = "isort"
@@ -1966,4 +2010,4 @@ test = ["pytest", "pytest-cov"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "0bd230db932eef3e3f716fdc070924d92644fe1bf2a426b9c15e508adb4b8d2e"
+content-hash = "b22ed9687c3300088c5c4c196bd13d337b645b10e46baa40494e571658ccb686"

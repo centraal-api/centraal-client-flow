@@ -16,6 +16,8 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     strategy:
       matrix:
@@ -61,11 +63,11 @@ jobs:
       - name: publish documentation
         run: |
           poetry install -E doc
-          mkdocs build
+          poetry run mkdocs build
           git config --global user.name Docs deploy
           git config --global user.email docs@dummy.bot.com
-          mike deploy -p -f --ignore `poetry version --short` latest
-          mike set-default -p `poetry version --short`
+          poetry run mike deploy -p -f --ignore `poetry version --short` latest
+          poetry run mike set-default -p `poetry version --short`
 
       - name: Build wheels and source tarball
         run: |
