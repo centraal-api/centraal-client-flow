@@ -1,35 +1,72 @@
-from typing import Callable
+"""Módulo para recibir eventos desde una fuente externa y procesarlos a través de Azure Functions."""
 
+import logging
 from azure.functions import Blueprint, TimerRequest
+from pydantic import BaseModel, ValidationError
 
-from centraal_client_flow.connections.service_bus import ServiceBusClientSingleton
+from centraal_client_flow.connections.service_bus import IServiceBusClient
+from centraal_client_flow.events import PullProcessor
 
 
-class TimerBase:
-    def __init__(self, schedule: str, queue_name: str, connection_str: str):
+class Pull:
+    """Clase para manejar la ejecución de tareas programadas y el envío de datos a Service Bus."""
+
+    def __init__(
+        self,
+        schedule: str,
+        event_source: str,
+        queue_name: str,
+        service_bus_client: IServiceBusClient,
+    ):
+        """
+        Inicializa una instancia de Timer.
+
+        Parameters:
+            event_source: Nombre de la fuente del evento.
+            queue_name (str): Nombre de la cola de Service Bus donde se enviarán los mensajes.
+            connection_str (str): Cadena de conexión a Service Bus.
+        """
+        self.event_source = event_source
         self.schedule = schedule
         self.queue_name = queue_name
-        self.connection_str = connection_str
-        self.service_bus_client = ServiceBusClientSingleton(
-            connection_str
-        )  # Inicializar Singleton
+        self.service_bus_client = service_bus_client
 
-    def create_blueprint(self, extract_data: Callable, determine_session_id: Callable):
-        bp = Blueprint()
+    def register_function(
+        self,
+        bp: Blueprint,
+        processor: PullProcessor,
+        event_model: type[BaseModel],
+    ) -> None:
+        """
+        Registra una función en un Blueprint de Azure Function para recibir y procesar eventos.
 
-        @bp.function_name("timer_function")
-        @bp.schedule(schedule=self.schedule)
-        def timer_function(timer: TimerRequest):
-            event_data = extract_data()
-            session_id = determine_session_id(event_data)
+        Parameters:
+            bp: Blueprint en el cual se registrará la función.
+            processor: Instancia de una clase que hereda de PullProcessor.
+            event_model: Modelo Pydantic para validar y parsear el evento.
+        """
 
-            # Enviar mensaje a Service Bus utilizando el Singleton
-            self.service_bus_client.send_message_to_queue(
-                event_data, session_id, self.queue_name
-            )
+        function_name = f"{self.event_source}-receive-event"
 
-        return bp
+        @bp.function_name(function_name)
+        @bp.schedule(schedule=self.schedule, arg_name="mytimer", run_on_startup=False)
+        def timer_function(mytimer: TimerRequest):
+            if mytimer.past_due:
+                logging.info("The timer is past due!")
 
-    def close(self):
-        # Método para cerrar la conexión del cliente Service Bus cuando ya no se necesite
-        self.service_bus_client.close()
+            event_data = processor.get_data()
+
+            for event_in_data in event_data:
+
+                try:
+                    event = event_model.model_validate(event_in_data)
+                    event_validado = processor.process_event(event)
+                    data_validada = event_validado.model_dump(
+                        mode="json", exclude_none=True
+                    )
+
+                    self.service_bus_client.send_message_to_queue(
+                        data_validada, str(event_validado.id), self.queue_name
+                    )
+                except ValidationError as e:
+                    logging.error("error in %s, excepcion\n%s", event_in_data, e)

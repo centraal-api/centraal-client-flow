@@ -1,52 +1,65 @@
-from typing import Callable
+"""Módulo para recibir eventos desde una fuente externa y procesarlos a través de Azure Functions."""
+
+import logging
+
 
 from azure.functions import Blueprint, HttpRequest, HttpResponse
+from pydantic import BaseModel
 
-from centraal_client_flow.connections.service_bus import ServiceBusClientSingleton
+from centraal_client_flow.connections.service_bus import IServiceBusClient
+from centraal_client_flow.events import EventProcessor
 
 
-class ReceiverBase:
-    def __init__(self, event_source: str, queue_name: str, connection_str: str):
+class Recieve:
+    """Clase para manejar la recepción y procesamiento de eventos desde una fuente específica."""
+
+    def __init__(
+        self, event_source: str, queue_name: str, service_bus_client: IServiceBusClient
+    ):
+        """
+        Inicializa una instancia de Receiver.
+
+        Parameters:
+            event_source: Nombre de la fuente del evento.
+            queue_name: Nombre de la cola de Service Bus donde se enviarán los mensajes.
+            service_bus_client: cliente service_bus_client.
+        """
         self.event_source = event_source
         self.queue_name = queue_name
-        self.connection_str = connection_str
-        self.service_bus_client = ServiceBusClientSingleton(connection_str)
+        self.service_bus_client = service_bus_client
 
-    def create_blueprint(
+    def register_function(
         self,
-        process_event: Callable,
-        validate_event: Callable = None,
-        log_event: Callable = None,
-    ):
-        bp = Blueprint()
+        bp: Blueprint,
+        processor: EventProcessor,
+        event_model: type[BaseModel],
+    ) -> None:
+        """
+        Registra una función en un Blueprint de Azure Function para recibir y procesar eventos.
 
-        @bp.route("/receive-event", methods=["POST"])
+        Parameters:
+            bp: Blueprint en el cual se registrará la función.
+            processor: Instancia de una clase que hereda de EventProcessor.
+            event_model: Modelo Pydantic para validar y parsear el evento.
+        """
+
+        function_name = f"{self.event_source}-receive-event"
+
+        @bp.function_name(function_name)
+        @bp.route(methods=["POST"])
         def receive_event(req: HttpRequest) -> HttpResponse:
-            if validate_event:
-                validation_response = validate_event(req)
-                if validation_response:
-                    return validation_response
 
-            if log_event:
-                log_event(req)
-
-            session_id = req.params.get("session_id")
             event_data = req.get_json()
+            logging.info("validando informacion")
+            event = event_model.model_validate(event_data)
 
-            # Espacio para lógica personalizada
-            process_event(event_data)
-
-            # Enviar mensaje a Service Bus utilizando el Singleton
+            event_validado = processor.process_event(event)
+            data_validada = event_validado.model_dump(mode="json", exclude_none=True)
+            logging.info("enviando informacion")
             self.service_bus_client.send_message_to_queue(
-                event_data, session_id, self.queue_name
+                data_validada, str(event_validado.id), self.queue_name
             )
 
             return HttpResponse(
-                f"Event from {self.event_source} processed", status_code=200
+                f"Evento de {self.event_source} es procesado.", status_code=200
             )
-
-        return bp
-
-    def close(self):
-        # Método para cerrar la conexión del cliente Service Bus cuando ya no se necesite
-        self.service_bus_client.close()
