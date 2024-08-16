@@ -2,7 +2,6 @@
 
 import logging
 
-
 from azure.functions import Blueprint, HttpRequest, HttpResponse
 from pydantic import BaseModel
 

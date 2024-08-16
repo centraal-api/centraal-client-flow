@@ -1,9 +1,9 @@
 """Codigo compartido por los submodulos."""
 
-from typing import List
 from abc import ABC, abstractmethod
+from typing import List
 
-from centraal_client_flow.models.schemas import EventoBase, BaseModel
+from centraal_client_flow.models.schemas import BaseModel, EventoBase
 
 
 class EventProcessor(ABC):
@@ -34,5 +34,5 @@ class PullProcessor(ABC):
         Procesa el evento recibido. y retorna el modelo de EventoBase
 
         Parameters:
-            event: Objeto que corresponde a modelo pydantic.
+            event_data: Objeto que corresponde a modelo pydantic.
         """

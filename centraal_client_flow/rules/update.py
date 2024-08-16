@@ -1,8 +1,9 @@
-"""Module de reglas de actualizacion."""
+"""Módulo para las reglas de actualización."""
 
 import json
-from typing import Type, List, Tuple, Optional, Any
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Any, List, Optional, Set, Tuple, Type
 
 from azure.functions import Blueprint, ServiceBusMessage
 from azure.servicebus import ServiceBusMessage as SBMessage
@@ -11,59 +12,147 @@ from pydantic import BaseModel, ValidationError
 from centraal_client_flow.connections.cosmosdb import CosmosDBSingleton
 from centraal_client_flow.connections.service_bus import IServiceBusClient
 from centraal_client_flow.models.schemas import (
-    EntradaEsquemaUnificado,
-    IDModel,
-    EventoBase,
     AuditoriaEntry,
+    EntradaEsquemaUnificado,
+    EventoBase,
+    IDModel,
 )
-from . import NoHayReglas
+from centraal_client_flow.rules import NoHayReglas
 
 
 class UpdateProcessor(ABC):
     """Clase base abstracta para procesadores de eventos."""
 
     @abstractmethod
-    def process_message(self, event: EventoBase) -> EntradaEsquemaUnificado:
+    def process_message(
+        self, event: EventoBase, current_registro: EntradaEsquemaUnificado
+    ) -> EntradaEsquemaUnificado:
         """
-        Procesa el evento recibido. y retorna el modelo de EntradaEsquemaUnificado
+        Procesa el evento recibido y retorna un modelo actualizado de EntradaEsquemaUnificado.
 
         Parameters:
-            event: Objeto que corresponde a modelo pydantic.
+            event: El evento que contiene la información del cambio, basado en un modelo Pydantic.
+            current_registro: El registro actual que será actualizado.
+
+        Returns:
+            EntradaEsquemaUnificado: El registro actualizado después de aplicar el evento.
         """
 
 
-class Rule(BaseModel):
-    model: Type[BaseModel]
+@dataclass
+class Rule:
+    """
+    Representa una regla de procesamiento que asocia un modelo Pydantic con un procesador
+        y los tópicos relevantes.
+
+    Attributes:
+        model: El tipo de modelo Pydantic que la regla procesa.
+        processor: El procesador que manejará la lógica de actualización.
+        topics: Los tópicos a los que la regla está asociada.
+    """
+
+    model: Type[EventoBase]
     processor: UpdateProcessor
-    topics: List[str]
+    topics: Set[str]
+
+    def process_rule(
+        self, data: Type[EventoBase], current: EntradaEsquemaUnificado
+    ) -> EntradaEsquemaUnificado:
+        """
+        Procesa una entrada de datos usando la regla definida.
+
+        Parameters:
+            data: El evento que se procesará.
+            current: El registro actual a ser actualizado.
+
+        Returns:
+            EntradaEsquemaUnificado: El registro actualizado.
+        """
+        return self.processor.process_message(data, current)
 
 
 class RuleSelector:
-    def __init__(self):
+    """Clase encargada de seleccionar y aplicar reglas de procesamiento sobre los eventos."""
+
+    def __init__(self, modelo_unificado: EntradaEsquemaUnificado):
         self.rules: List[Rule] = []
+        self.modelo_unificado = modelo_unificado
 
     def register_rule(self, rule: Rule):
         """
-        Register a rule with its corresponding Pydantic model, processor, and topics.
+        Registra una nueva regla para su uso futuro en el procesamiento de eventos.
+
+        Parameters:
+            rule: La regla que se va a registrar.
         """
+        self._validate_rule(rule)
         self.rules.append(rule)
 
-    def select_rule(self, data: dict) -> Tuple[EntradaEsquemaUnificado, List[str]]:
+    def _validate_rule(self, rule: Rule):
         """
-        Validate data against registered models, process it using the appropriate rule,
-        and return the processed data along with the topics to update.
+        Valida que los tópicos de la regla coincidan con los subesquemas en el modelo unificado.
+
+        Parameters:
+            rule: La regla a validar.
+
+        Raises:
+            ValueError: Si algún tópico de la regla no corresponde a un subesquema válido.
+        """
+        model_fields = set(self.modelo_unificado.model_fields)
+        for t in rule.topics:
+            if t == "root":
+                pass
+            elif t not in model_fields:
+                raise ValueError(
+                    f"El tópico {t} debe corresponder a un subesquema {model_fields}"
+                )
+
+    def select_rule(self, data: dict) -> Tuple[EventoBase, Rule]:
+        """
+        Selecciona la regla adecuada para los datos proporcionados.
+
+        Parameters:
+            data: Un diccionario con los datos a validar y procesar.
+
+        Returns:
+            Tuple[EventoBase, Rule]: Los datos validados y la regla seleccionada.
+
+        Raises:
+            NoHayReglas: Si no se encuentra una regla válida para los datos proporcionados.
         """
         for rule in self.rules:
             try:
                 validated_data = rule.model.model_validate(data)
-                processed_data = rule.processor.process_message(validated_data)
-                return processed_data, rule.topics
+                return validated_data, rule
             except ValidationError:
                 continue
-        raise NoHayReglas(f"No valid rule found for {data}.")
+        raise NoHayReglas(f"No se encontró una regla válida para {data}.")
+
+    def get_topics_by_changes(
+        self, rule_topics: Set[str], changes: List[AuditoriaEntry]
+    ) -> List[str]:
+        """
+        Selecciona los tópicos relevantes basados en los cambios detectados.
+
+        Parameters:
+            rule_topics: Conjunto de tópicos definidos en la regla.
+            changes: Lista de entradas de auditoría con los cambios detectados.
+
+        Returns:
+            List[str]: Lista de tópicos que necesitan ser notificados.
+        """
+        topics_to_notify = set()
+
+        for change in changes:
+            if change.subesquema in rule_topics:
+                topics_to_notify.update(change.subesquema)
+
+        return list(topics_to_notify)
 
 
 class RuleProcessor:
+    """Clase que orquesta el procesamiento de reglas y la interacción con Service Bus y Cosmos DB."""
+
     def __init__(
         self,
         queue_name: str,
@@ -84,31 +173,42 @@ class RuleProcessor:
         self,
         bp: Blueprint,
     ):
+        """
+        Registra una función para procesar mensajes desde una cola de Service Bus.
 
+        Parameters:
+            bp: El Blueprint que maneja las funciones de Azure.
+
+        Returns:
+            Blueprint: El Blueprint con la función registrada.
+        """
         function_name = f"{self.queue_name}-rule-processor"
 
         @bp.function_name(name=function_name)
         @bp.service_bus_queue_trigger(
             arg_name="msg",
             queue_name=self.queue_name,
-            connection=self.cosmos_client.connection_string,
+            connection=self.service_bus_client.connection_str,
+            is_sessions_enabled=True,
         )
         def process_function(msg: ServiceBusMessage):
             data = json.loads(msg.get_body().decode("utf-8"))
-            processed_data, topic_names = self.rule_selector.select_rule(data)
-
-            current_data = self.get_current_entrada(processed_data.id)
-            changes = self.detect_changes(current_data, processed_data)
-
-            if current_data is None:
-                self.save_unified_model(processed_data)
-                self.record_auditoria(changes)
-                self.publish_to_topics(processed_data, topic_names)
-                return
+            event_model, rule = self.rule_selector.select_rule(data)
+            current_data = self.get_current_entrada(event_model.id)
+            processed_data = rule.process_rule(event_model, current_data)
+            changes = self.detect_changes(current_data, processed_data, event_model.id)
 
             if len(changes) == 1 and changes[0].subesquema == "No Changes":
                 self.record_auditoria(changes)
                 return
+
+            self.save_unified_model(processed_data)
+            self.record_auditoria(changes)
+            topics_to_notify = self.rule_selector.get_topics_by_changes(
+                rule.topics, changes
+            )
+            self.publish_to_topics(processed_data, topics_to_notify)
+            return
 
         return bp
 
@@ -117,25 +217,48 @@ class RuleProcessor:
         new_data: EntradaEsquemaUnificado,
     ) -> EntradaEsquemaUnificado:
         """
-        Save the updated EntradaEsquemaUnificado model in Cosmos DB.
+        Guarda el modelo de EntradaEsquemaUnificado actualizado en Cosmos DB.
+
+        Parameters:
+            new_data: El modelo actualizado de EntradaEsquemaUnificado.
+
+        Returns:
+            EntradaEsquemaUnificado: El modelo almacenado en la base de datos.
         """
         container = self.cosmos_client.get_container_client(self.unified_container_name)
-        container.upsert_item(new_data.dict())
-        return new_data
+        item_written = container.upsert_item(
+            new_data.model_dump(mode="json", exclude_none=True)
+        )
+        return item_written
 
     def record_auditoria(self, changes: List[AuditoriaEntry]):
+        """
+        Registra los cambios detectados en el contenedor de auditoría de Cosmos DB.
+
+        Parameters:
+            changes: Lista de entradas de auditoría que contienen los cambios detectados.
+        """
         container = self.cosmos_client.get_container_client(
             self.auditoria_container_name
         )
         for change in changes:
-            container.create_item(change.model_dump(mode="json", exclude_none=True))
+            container.create_item(
+                change.model_dump(mode="json", exclude_none=True),
+                enable_automatic_id_generation=True,
+            )
 
     def get_current_entrada(
         self,
         id_entrada: IDModel,
     ) -> Optional[EntradaEsquemaUnificado]:
         """
-        Retrieves the current entry from Cosmos DB and parses it as EntradaEsquemaUnificado.
+        Recupera el registro actual desde Cosmos DB basado en el ID proporcionado.
+
+        Parameters:
+            id_entrada: El ID del registro que se desea recuperar.
+
+        Returns:
+            Optional[EntradaEsquemaUnificado]: El registro actual, si existe.
         """
         container = self.cosmos_client.get_container_client(self.unified_container_name)
         query = f"SELECT * FROM c WHERE c.id = '{str(id_entrada)}'"
@@ -151,19 +274,28 @@ class RuleProcessor:
         self,
         current_data: Optional[EntradaEsquemaUnificado],
         updated_data: EntradaEsquemaUnificado,
+        id_model: IDModel,
     ) -> List[AuditoriaEntry]:
         """
-        Detects changes between the current and updated EntradaEsquemaUnificado instances.
-        If current_data is None, it assumes all fields are new.
+        Detecta cambios entre los datos actuales y los actualizados en el modelo EntradaEsquemaUnificado.
+
+        Parameters:
+            current_data: Los datos actuales en la base de datos.
+            updated_data: Los datos actualizados a comparar.
+            id_model: El ID del modelo que se está procesando.
+
+        Returns:
+            List[AuditoriaEntry]: Lista de entradas de auditoría que reflejan los cambios detectados.
         """
         changes = []
 
         def _log_changes(
             subesquema_name: str, old_value: Any, new_value: Any, field_name: str
         ):
-            """Helper function to log changes."""
+            """Función auxiliar para registrar cambios detectados."""
             changes.append(
                 AuditoriaEntry(
+                    id_entrada=id_model,
                     subesquema=subesquema_name,
                     campo=field_name,
                     new_value=new_value,
@@ -172,26 +304,26 @@ class RuleProcessor:
             )
 
         if current_data is None:
-            # No current data exists, log all fields as changes
+            # No hay datos actuales, se registran todos los campos como cambios
             for field_name in updated_data.model_fields_set:
                 new_value = getattr(updated_data, field_name)
                 if isinstance(new_value, BaseModel) and not (
                     isinstance(new_value, IDModel)
                 ):
-                    # It's a nested Pydantic model (subesquema)
+                    # Es un modelo Pydantic anidado (subesquema)
                     for sub_field_name in new_value.model_fields_set:
                         sub_field_value = getattr(new_value, sub_field_name)
                         _log_changes(field_name, None, sub_field_value, sub_field_name)
 
                 else:
-                    _log_changes(field_name, None, new_value, field_name)
+                    # Si es principal es "root"
+                    _log_changes("root", None, new_value, field_name)
         else:
-            # Compare each field between current and updated data
             for field_name in updated_data.model_fields_set:
                 old_value = getattr(current_data, field_name)
                 new_value = getattr(updated_data, field_name)
                 if isinstance(new_value, BaseModel):
-                    # It's a nested Pydantic model (subesquema)
+                    # Es un modelo Pydantic anidado (subesquema)
                     for sub_field_name in new_value.model_fields_set:
                         sub_old_value = (
                             getattr(old_value, sub_field_name, None)
@@ -205,11 +337,12 @@ class RuleProcessor:
                             )
                 else:
                     if old_value != new_value:
-                        _log_changes(field_name, old_value, new_value, field_name)
+                        _log_changes("root", old_value, new_value, field_name)
 
         if not changes:
             changes.append(
                 AuditoriaEntry(
+                    id_entrada=id_model,
                     subesquema="No Changes",
                     campo="No changes detected between current and updated data.",
                     valor=None,
@@ -220,16 +353,18 @@ class RuleProcessor:
 
     def publish_to_topics(
         self,
-        processed_data,
+        processed_data: EntradaEsquemaUnificado,
         topic_names: List[str],
     ):
+        """
+        Publica los datos procesados a los tópicos de Service Bus relevantes.
+
+        Parameters:
+            processed_data: Los datos procesados que se enviarán.
+            topic_names: Lista de tópicos a los que se enviarán los datos.
+        """
         client = self.service_bus_client
         for topic_name in topic_names:
             with client.get_topic_sender(topic_name=topic_name) as sender:
                 message = SBMessage(processed_data)
                 sender.send_messages(message)
-
-    def close(self):
-        # Método para cerrar la conexión del cliente Service Bus y Cosmos DB cuando ya no se necesite
-        self.service_bus_client.close()
-        self.cosmos_client.client.close()

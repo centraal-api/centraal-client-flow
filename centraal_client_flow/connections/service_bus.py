@@ -9,6 +9,9 @@ from azure.servicebus import ServiceBusClient, ServiceBusMessage
 class IServiceBusClient(Protocol):
     """Interfaz."""
 
+    client: ServiceBusClient = None
+    connection_str: str = None
+
     def send_message_to_queue(self, message: dict, session_id: str, queue_name: str):
         """Envía un mensaje a la cola de Service Bus especificada.
 
@@ -24,6 +27,7 @@ class ServiceBusClientSingleton(IServiceBusClient):
 
     _instance = None
     client: ServiceBusClient = None
+    connection_str: str = None
 
     def __new__(cls, connection_str: str):
         """Crea una instancia única de ServiceBusClientSingleton si no existe.

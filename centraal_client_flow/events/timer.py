@@ -1,6 +1,7 @@
 """Módulo para recibir eventos desde una fuente externa y procesarlos a través de Azure Functions."""
 
 import logging
+
 from azure.functions import Blueprint, TimerRequest
 from pydantic import BaseModel, ValidationError
 

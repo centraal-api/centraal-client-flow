@@ -1,10 +1,10 @@
 """Modelos de pydantic comunes."""
 
-from typing import Any
-from typing_extensions import Self
 from datetime import datetime, timezone
+from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
+from typing_extensions import Self
 
 
 class IDModel(BaseModel):
@@ -50,6 +50,7 @@ class EventoBase(BaseModel):
 class AuditoriaEntry(BaseModel):
     """Entrada para auditoria."""
 
+    id_entrada: IDModel
     subesquema: str
     campo: str
     new_value: Any
