@@ -3,7 +3,7 @@
 import logging
 
 from azure.functions import Blueprint, TimerRequest
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 
 from centraal_client_flow.connections.service_bus import IServiceBusClient
 from centraal_client_flow.events import PullProcessor
@@ -36,7 +36,6 @@ class Pull:
         self,
         bp: Blueprint,
         processor: PullProcessor,
-        event_model: type[BaseModel],
     ) -> None:
         """
         Registra una función en un Blueprint de Azure Function para recibir y procesar eventos.
@@ -44,7 +43,7 @@ class Pull:
         Parameters:
             bp: Blueprint en el cual se registrará la función.
             processor: Instancia de una clase que hereda de PullProcessor.
-            event_model: Modelo Pydantic para validar y parsear el evento.
+
         """
 
         function_name = f"{self.event_source}-receive-event"
@@ -60,8 +59,7 @@ class Pull:
             for event_in_data in event_data:
 
                 try:
-                    event = event_model.model_validate(event_in_data)
-                    event_validado = processor.process_event(event)
+                    event_validado = processor.process_event(event_in_data)
                     data_validada = event_validado.model_dump(
                         mode="json", exclude_none=True
                     )

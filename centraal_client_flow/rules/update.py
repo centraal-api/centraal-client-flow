@@ -169,15 +169,13 @@ class RuleProcessor:
         self.cosmos_client = cosmos_client
         self.rule_selector = rule_selector
 
-    def register_function(
-        self,
-        bp: Blueprint,
-    ):
+    def register_function(self, bp: Blueprint, bus_connection_name: str):
         """
         Registra una función para procesar mensajes desde una cola de Service Bus.
 
         Parameters:
             bp: El Blueprint que maneja las funciones de Azure.
+            bus_connection_name: nombre del app setting con la conecion del bus
 
         Returns:
             Blueprint: El Blueprint con la función registrada.
@@ -188,7 +186,7 @@ class RuleProcessor:
         @bp.service_bus_queue_trigger(
             arg_name="msg",
             queue_name=self.queue_name,
-            connection=self.service_bus_client.connection_str,
+            connection=bus_connection_name,
             is_sessions_enabled=True,
         )
         def process_function(msg: ServiceBusMessage):
