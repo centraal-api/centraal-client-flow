@@ -1,6 +1,7 @@
 """Módulo para las reglas de actualización."""
 
 import json
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, List, Optional, Set, Tuple, Type
@@ -17,10 +18,11 @@ from centraal_client_flow.models.schemas import (
     EventoBase,
     IDModel,
 )
+from centraal_client_flow.helpers.logger import LoggerMixin
 from centraal_client_flow.rules import NoHayReglas
 
 
-class UpdateProcessor(ABC):
+class UpdateProcessor(LoggerMixin, ABC):
     """Clase base abstracta para procesadores de eventos."""
 
     @abstractmethod

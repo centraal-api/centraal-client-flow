@@ -1,5 +1,6 @@
 """Estrategias. """
 
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Callable, Optional
@@ -15,6 +16,16 @@ class IntegrationStrategy(ABC):
 
     modelo_unificado: EntradaEsquemaUnificado
     name: str = None
+    logger: logging.Logger
+
+    def __init__(self, logger: Optional[logging.Logger] = None):
+        """
+        Inicializa la estrategia de integración con un logger opcional.
+
+        Parameters:
+            logger: Instancia opcional de logging.Logger.
+        """
+        self.logger = logger or logging.getLogger(self.__class__.__name__)
 
     @abstractmethod
     def modelo_unificado_mapping(self, message: EntradaEsquemaUnificado) -> BaseModel:
@@ -84,6 +95,7 @@ class RESTIntegration(IntegrationStrategy):
         mapping_function: Optional[
             Callable[[EntradaEsquemaUnificado], BaseModel]
         ] = None,
+        logger: Optional[logging.Logger] = None,
     ):
         """Inicializa una instancia de RESTIntegration con la configuración de OAuth y
             los parámetros REST.
@@ -96,6 +108,7 @@ class RESTIntegration(IntegrationStrategy):
             mapping_function: Una función opcional que define cómo mapear un
                 `EntradaEsquemaUnificado` a un modelo Pydantic.
         """
+        super().__init__(logger=logger)
         self.oauth_config = oauth_config
         self.method = method
         self.resource = resource

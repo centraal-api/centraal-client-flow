@@ -4,9 +4,10 @@ from abc import ABC, abstractmethod
 from typing import List
 
 from centraal_client_flow.models.schemas import BaseModel, EventoBase
+from centraal_client_flow.helpers.logger import LoggerMixin
 
 
-class EventProcessor(ABC):
+class EventProcessor(LoggerMixin, ABC):
     """Clase base abstracta para procesadores de eventos."""
 
     @abstractmethod
@@ -19,7 +20,7 @@ class EventProcessor(ABC):
         """
 
 
-class PullProcessor(ABC):
+class PullProcessor(LoggerMixin, ABC):
     """Clase base abstracta para procesadores de eventos."""
 
     @abstractmethod

@@ -1,3 +1,5 @@
+"""Reglas de integración."""
+
 import json
 
 from azure.functions import Blueprint, ServiceBusMessage
