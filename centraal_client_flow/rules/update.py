@@ -1,7 +1,6 @@
 """Módulo para las reglas de actualización."""
 
 import json
-import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, List, Optional, Set, Tuple, Type
@@ -27,7 +26,7 @@ class UpdateProcessor(LoggerMixin, ABC):
 
     @abstractmethod
     def process_message(
-        self, event: EventoBase, current_registro: EntradaEsquemaUnificado
+        self, event: EventoBase, current_registro: Optional[EntradaEsquemaUnificado]
     ) -> EntradaEsquemaUnificado:
         """
         Procesa el evento recibido y retorna un modelo actualizado de EntradaEsquemaUnificado.
