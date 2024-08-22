@@ -362,7 +362,7 @@ class RuleProcessor:
             processed_data: Los datos procesados que se enviarán.
             topic_names: Lista de tópicos a los que se enviarán los datos.
         """
-        client = self.service_bus_client
+        client = self.service_bus_client.client
         for topic_name in topic_names:
             with client.get_topic_sender(topic_name=topic_name) as sender:
                 message = SBMessage(processed_data)
