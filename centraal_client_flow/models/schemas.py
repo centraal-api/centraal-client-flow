@@ -1,7 +1,7 @@
 """Modelos de pydantic comunes."""
 
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field, model_validator, model_serializer
 from typing_extensions import Self
@@ -82,6 +82,6 @@ class AuditoriaEntry(BaseModel):
     id_entrada: IDModel
     subesquema: str
     campo: str
-    new_value: Any
-    old_value: Any
+    new_value: Optional[Any]
+    old_value: Optional[Any]
     fecha_evento: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

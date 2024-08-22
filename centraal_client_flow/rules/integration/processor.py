@@ -4,6 +4,7 @@ import json
 
 from azure.functions import Blueprint, ServiceBusMessage
 
+from centraal_client_flow.models.schemas import EntradaEsquemaUnificado
 from centraal_client_flow.rules.integration.strategy import IntegrationStrategy
 
 
@@ -14,11 +15,13 @@ class IntegrationRule:
         connection_str: str,
         subscription_name: str,
         integration_strategy: IntegrationStrategy,
+        model_unficado: type[EntradaEsquemaUnificado],
     ):
         self.topic_name = topic_name
         self.connection_str = connection_str
         self.subscription_name = subscription_name
         self.integration_strategy = integration_strategy
+        self.model_unficado = model_unficado
 
     def register_function(
         self,
@@ -37,9 +40,7 @@ class IntegrationRule:
         def integrate_function(message: ServiceBusMessage):
             message_body = json.loads(message.get_body().decode("utf-8"))
 
-            message_esquema = self.integration_strategy.modelo_unificado.model_validate(
-                message_body
-            )
+            message_esquema = self.model_unficado.model_validate(message_body)
 
             output_model = self.integration_strategy.modelo_unificado_mapping(
                 message_esquema

@@ -7,6 +7,7 @@ from typing import Callable, Optional
 
 import requests
 from pydantic import BaseModel
+from urllib.parse import urlencode
 
 from centraal_client_flow.models.schemas import EntradaEsquemaUnificado
 
@@ -14,11 +15,10 @@ from centraal_client_flow.models.schemas import EntradaEsquemaUnificado
 class IntegrationStrategy(ABC):
     """Clase Abstracta para definir estrategias de integracion."""
 
-    modelo_unificado: EntradaEsquemaUnificado
     name: str = None
     logger: logging.Logger
 
-    def __init__(self, logger: Optional[logging.Logger] = None):
+    def __init__(self, logger: Optional[logging.Logger] = None, name: str = None):
         """
         Inicializa la estrategia de integración con un logger opcional.
 
@@ -26,6 +26,7 @@ class IntegrationStrategy(ABC):
             logger: Instancia opcional de logging.Logger.
         """
         self.logger = logger or logging.getLogger(self.__class__.__name__)
+        self.name = name
 
     @abstractmethod
     def modelo_unificado_mapping(self, message: EntradaEsquemaUnificado) -> BaseModel:
@@ -62,6 +63,7 @@ class OAuthConfigPassFlow:
     password: str
     token_resource: str
     api_url: str
+    use_url_params_for_auth: bool = True
 
 
 @dataclass
@@ -72,7 +74,7 @@ class OAuthTokenPass:
     instance_url: str
     id: str
     token_type: str
-    issue_at: int
+    issued_at: int
     signature: str
 
 
@@ -108,7 +110,7 @@ class RESTIntegration(IntegrationStrategy):
             mapping_function: Una función opcional que define cómo mapear un
                 `EntradaEsquemaUnificado` a un modelo Pydantic.
         """
-        super().__init__(logger=logger)
+        super().__init__(logger=logger, name=f"{method}-{mapping_function.__name__}")
         self.oauth_config = oauth_config
         self.method = method
         self.resource = resource
@@ -120,18 +122,25 @@ class RESTIntegration(IntegrationStrategy):
         Returns:
             Un objeto `OAuthTokenPass` que contiene el token de acceso y otra información relevante.
         """
-        token_url = f"{self.oauth_config.api_url}/{self.oauth_config.token_resource}"
-        response = requests.post(
-            token_url,
-            data={
-                "grant_type": "password",
-                "client_id": self.oauth_config.client_id,
-                "client_secret": self.oauth_config.client_secret,
-                "username": self.oauth_config.username,
-                "password": self.oauth_config.password,
-            },
-            timeout=30,
-        )
+        # Prepare authentication data
+        auth_data = {
+            "grant_type": "password",
+            "client_id": self.oauth_config.client_id,
+            "client_secret": self.oauth_config.client_secret,
+            "username": self.oauth_config.username,
+            "password": self.oauth_config.password,
+        }
+
+        if self.oauth_config.use_url_params_for_auth:
+            # Construct the URL with query parameters
+            token_url = f"{self.oauth_config.api_url}/{self.oauth_config.token_resource}?{urlencode(auth_data)}"
+            response = requests.post(token_url, headers={}, timeout=30)
+        else:
+            # Send parameters in the request body
+            token_url = (
+                f"{self.oauth_config.api_url}/{self.oauth_config.token_resource}"
+            )
+            response = requests.post(token_url, data=auth_data, headers={}, timeout=30)
 
         response.raise_for_status()
         token_data = response.json()

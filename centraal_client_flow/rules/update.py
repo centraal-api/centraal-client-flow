@@ -130,7 +130,10 @@ class RuleSelector:
         raise NoHayReglas(f"No se encontró una regla válida para {data}.")
 
     def get_topics_by_changes(
-        self, rule_topics: Set[str], changes: List[AuditoriaEntry]
+        self,
+        rule_topics: Set[str],
+        changes: List[AuditoriaEntry],
+        include_root: bool = False,
     ) -> List[str]:
         """
         Selecciona los tópicos relevantes basados en los cambios detectados.
@@ -146,7 +149,10 @@ class RuleSelector:
 
         for change in changes:
             if change.subesquema in rule_topics:
-                topics_to_notify.update(change.subesquema)
+                if include_root:
+                    topics_to_notify.add(change.subesquema)
+                elif change.subesquema != "root":
+                    topics_to_notify.add(change.subesquema)
 
         return list(topics_to_notify)
 
@@ -193,7 +199,9 @@ class RuleProcessor:
         def process_function(msg: ServiceBusMessage):
             data = json.loads(msg.get_body().decode("utf-8"))
             event_model, rule = self.rule_selector.select_rule(data)
-            current_data = self.get_current_entrada(event_model.id)
+            current_data = self.get_current_entrada(
+                event_model.id, self.rule_selector.modelo_unificado
+            )
             processed_data = rule.process_rule(event_model, current_data)
             changes = self.detect_changes(current_data, processed_data, event_model.id)
 
@@ -247,8 +255,7 @@ class RuleProcessor:
             )
 
     def get_current_entrada(
-        self,
-        id_entrada: IDModel,
+        self, id_entrada: IDModel, model_unificado: type[EntradaEsquemaUnificado]
     ) -> Optional[EntradaEsquemaUnificado]:
         """
         Recupera el registro actual desde Cosmos DB basado en el ID proporcionado.
@@ -260,13 +267,13 @@ class RuleProcessor:
             Optional[EntradaEsquemaUnificado]: El registro actual, si existe.
         """
         container = self.cosmos_client.get_container_client(self.unified_container_name)
-        query = f"SELECT * FROM c WHERE c.id = '{str(id_entrada)}'"
+        query = f"SELECT * FROM c WHERE c.id = '{id_entrada.model_dump()}'"
         current_items = list(
             container.query_items(query, enable_cross_partition_query=True)
         )
 
         if current_items:
-            return EntradaEsquemaUnificado.model_validate(current_items[0])
+            return model_unificado.model_validate(current_items[0])
         return None
 
     def detect_changes(
@@ -343,8 +350,9 @@ class RuleProcessor:
                 AuditoriaEntry(
                     id_entrada=id_model,
                     subesquema="No Changes",
-                    campo="No changes detected between current and updated data.",
-                    valor=None,
+                    campo="Ninguno",
+                    new_value="No cambios",
+                    old_value="No cambios",
                 )
             )
 
@@ -365,5 +373,7 @@ class RuleProcessor:
         client = self.service_bus_client.client
         for topic_name in topic_names:
             with client.get_topic_sender(topic_name=topic_name) as sender:
-                message = SBMessage(processed_data)
+                message = SBMessage(
+                    body=str(processed_data.model_dump(mode="json", exclude_none=True))
+                )
                 sender.send_messages(message)
