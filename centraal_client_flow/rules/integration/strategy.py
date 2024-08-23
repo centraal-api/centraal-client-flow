@@ -3,11 +3,11 @@
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Callable, Optional
+from typing import Callable, Optional, Any
+from urllib.parse import urlencode
 
 import requests
 from pydantic import BaseModel
-from urllib.parse import urlencode
 
 from centraal_client_flow.models.schemas import EntradaEsquemaUnificado
 
@@ -81,14 +81,6 @@ class OAuthTokenPass:
 class RESTIntegration(IntegrationStrategy):
     """Estrategia de integracion basada en REST."""
 
-    _instance: Optional["RESTIntegration"] = None
-    _token: Optional[OAuthTokenPass] = None
-
-    def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super(RESTIntegration, cls).__new__(cls)
-        return cls._instance
-
     def __init__(
         self,
         oauth_config: OAuthConfigPassFlow,
@@ -110,11 +102,13 @@ class RESTIntegration(IntegrationStrategy):
             mapping_function: Una función opcional que define cómo mapear un
                 `EntradaEsquemaUnificado` a un modelo Pydantic.
         """
-        super().__init__(logger=logger, name=f"{method}-{mapping_function.__name__}")
+        super().__init__(logger=logger, name=f"{method}_{mapping_function.__name__}")
         self.oauth_config = oauth_config
         self.method = method
         self.resource = resource
         self.mapping_function = mapping_function
+        self.response_processor = lambda r: r.json()
+        self._token: Optional[OAuthTokenPass] = None
 
     def _authenticate(self) -> OAuthTokenPass:
         """Autentica usando OAuth 2.0 con grant_type=password y obtiene un token de acceso.
@@ -122,7 +116,6 @@ class RESTIntegration(IntegrationStrategy):
         Returns:
             Un objeto `OAuthTokenPass` que contiene el token de acceso y otra información relevante.
         """
-        # Prepare authentication data
         auth_data = {
             "grant_type": "password",
             "client_id": self.oauth_config.client_id,
@@ -132,11 +125,9 @@ class RESTIntegration(IntegrationStrategy):
         }
 
         if self.oauth_config.use_url_params_for_auth:
-            # Construct the URL with query parameters
             token_url = f"{self.oauth_config.api_url}/{self.oauth_config.token_resource}?{urlencode(auth_data)}"
             response = requests.post(token_url, headers={}, timeout=30)
         else:
-            # Send parameters in the request body
             token_url = (
                 f"{self.oauth_config.api_url}/{self.oauth_config.token_resource}"
             )
@@ -210,4 +201,8 @@ class RESTIntegration(IntegrationStrategy):
             timeout=300,
         )
         response.raise_for_status()
-        return response.json()
+        return self.response_processor(response)
+
+    def set_response_processor(self, processor: Callable[[requests.Response], Any]):
+        """Configura un procesamiento de la respuesta."""
+        self.response_processor = processor
