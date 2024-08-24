@@ -74,11 +74,11 @@ La arquitectura está diseñada para unificar la información de los clientes al
 | (Esquema Unificado y  |   |         Topic           |
 |  Log de Auditoría)    |   |                         |
 +-----------------------+   +-------------------------+
-            |                   |
-            |                   |
-      [P]-AuditoriaEntry        |
-            |                   |
-            v                   v
+            |                           |
+            |                           |
+      [P]-AuditoriaEntry                |
+            |                           |
+            v                           v
 +-----------------------+   +-------------------------+
 | Log de Auditoría en   |   | Integration Function    |
 | Cosmos DB             |   | Reglas  y Estrategias   |
