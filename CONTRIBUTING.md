@@ -117,3 +117,36 @@ $ git push --tags
 ```
 
 Github Actions will then deploy to PyPI if tests pass.
+
+
+# Configuraciones para desarroladores
+
+**en dev.yml**
+-  remover python 3.8.
+- ajustar la publicación
+
+```yaml
+- name: publish to Test PyPI
+uses: pypa/gh-action-pypi-publish@release/v1
+with:
+    repository-url: https://test.pypi.org/legacy/
+    skip-existing: true
+```
+- remover todo lo relacionado con la notificación
+
+**en release.yml**
+- remover el trigger en main
+-  ajustar las versiones python-versions: ['3.9', '3.10', '3.11']
+- ajustar la publicacion a pypi
+
+```yaml
+- name: publish to PYPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
+```
+
+- remover todo lo relacionado con la notificación
+
+**pyrightconfig.json**
+- version python 3.11
