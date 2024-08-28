@@ -3,8 +3,8 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from centraal_client_flow.models.schemas import BaseModel, EventoBase
 from centraal_client_flow.helpers.logger import LoggerMixin
+from centraal_client_flow.models.schemas import BaseModel, EventoBase
 
 
 class EventProcessor(LoggerMixin, ABC):

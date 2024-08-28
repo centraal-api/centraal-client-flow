@@ -3,7 +3,7 @@
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Callable, Optional, Any
+from typing import Any, Callable, Optional
 from urllib.parse import urlencode
 
 import requests

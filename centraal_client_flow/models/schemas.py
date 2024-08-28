@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field, model_validator, model_serializer
+from pydantic import BaseModel, Field, model_serializer, model_validator
 from typing_extensions import Self
 
 

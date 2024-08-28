@@ -1,7 +1,9 @@
 """Reglas de integración."""
 
 import json
+
 from azure.functions import Blueprint, ServiceBusMessage
+
 from centraal_client_flow.models.schemas import EntradaEsquemaUnificado
 from centraal_client_flow.rules.integration.strategy import IntegrationStrategy
 

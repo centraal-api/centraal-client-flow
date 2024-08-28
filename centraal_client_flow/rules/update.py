@@ -11,13 +11,13 @@ from pydantic import BaseModel, ValidationError
 
 from centraal_client_flow.connections.cosmosdb import CosmosDBSingleton
 from centraal_client_flow.connections.service_bus import IServiceBusClient
+from centraal_client_flow.helpers.logger import LoggerMixin
 from centraal_client_flow.models.schemas import (
     AuditoriaEntry,
     EntradaEsquemaUnificado,
     EventoBase,
     IDModel,
 )
-from centraal_client_flow.helpers.logger import LoggerMixin
 from centraal_client_flow.rules import NoHayReglas
 
 
