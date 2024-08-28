@@ -16,20 +16,21 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
 
     strategy:
       matrix:
         python-versions: ['3.9', '3.10', '3.11']
-
-    # map step outputs to job outputs so they can be share among jobs
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
     outputs:
       package_version: ${{ steps.variables_step.outputs.package_version }}
       package_name: ${{ steps.variables_step.outputs.package_name }}
       repo_name: ${{ steps.variables_step.outputs.repo_name }}
       repo_owner: ${{ steps.variables_step.outputs.repo_owner }}
+    
+    
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
