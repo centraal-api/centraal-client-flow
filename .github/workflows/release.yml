@@ -66,18 +66,15 @@ jobs:
         run: |
           poetry lock
           poetry build
-
-      - name: Create Release
+      - name: create github release
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
           body: ${{ steps.build_changelog.outputs.changelog }}
+          files: dist/*.whl
           draft: false
           prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: publish to PYPI
         uses: pypa/gh-action-pypi-publish@release/v1
