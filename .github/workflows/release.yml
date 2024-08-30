@@ -19,7 +19,8 @@ jobs:
 
     strategy:
       matrix:
-        python-versions: ['3.9', '3.10', '3.11']
+        # use the lowest to ensure upward compability.
+        python-versions: ['3.9']
     environment: release
     permissions:
       contents: write
