@@ -1,5 +1,6 @@
 """Conexiones a service bus."""
 
+import json
 from typing import Protocol, runtime_checkable
 
 from azure.servicebus import ServiceBusClient, ServiceBusMessage
@@ -46,7 +47,7 @@ class ServiceBusClientSingleton(IServiceBusClient):
     def send_message_to_queue(self, message: dict, session_id: str, queue_name: str):
         """Envía un mensaje a la cola de Service Bus especificada. Concreta"""
         sender = self.client.get_queue_sender(queue_name)
-        msg = ServiceBusMessage(body=str(message))
+        msg = ServiceBusMessage(body=json.dumps(message))
         msg.session_id = session_id
 
         with sender:
