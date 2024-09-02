@@ -372,8 +372,7 @@ class RuleProcessor:
         """
         client = self.service_bus_client.client
         for topic_name in topic_names:
+            body = processed_data.model_dump(mode="json", exclude_none=True)
             with client.get_topic_sender(topic_name=topic_name) as sender:
-                message = SBMessage(
-                    body=processed_data.model_dump(mode="json", exclude_none=True)
-                )
+                message = SBMessage(body=json.dumps(body))
                 sender.send_messages(message)
