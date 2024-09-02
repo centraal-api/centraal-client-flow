@@ -374,6 +374,6 @@ class RuleProcessor:
         for topic_name in topic_names:
             with client.get_topic_sender(topic_name=topic_name) as sender:
                 message = SBMessage(
-                    body=str(processed_data.model_dump(mode="json", exclude_none=True))
+                    body=processed_data.model_dump(mode="json", exclude_none=True)
                 )
                 sender.send_messages(message)
