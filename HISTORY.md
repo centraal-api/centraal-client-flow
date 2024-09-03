@@ -1,5 +1,11 @@
 # History
 
+## 0.1.5 (2024-09-03)
+
+## Added
+- `IntegrationRule` se adiciona un metodo que ejecuta la regla de integración.
+
+
 ## 0.1.4 (2024-09-03)
 
 ## Fixed

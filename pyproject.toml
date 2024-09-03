@@ -1,7 +1,7 @@
 [tool]
 [tool.poetry]
 name = "centraal_client_flow"
-version = "0.1.4"
+version = "0.1.5"
 homepage = "https://github.com/centraal-api/centraal_client_flow"
 description = "Proyecto que facilita el flujo de información de cliente."
 authors = ["German <equipo@centraal.studio>"]

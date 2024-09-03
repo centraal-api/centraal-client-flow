@@ -1,8 +1,10 @@
 """Reglas de integración."""
 
 import json
+import logging
 
 from azure.functions import Blueprint, ServiceBusMessage
+from pydantic import ValidationError
 
 from centraal_client_flow.models.schemas import EntradaEsquemaUnificado
 from centraal_client_flow.rules.integration.strategy import IntegrationStrategy
@@ -119,9 +121,24 @@ class IntegrationRule:
         self.integration_strategy = integration_strategy
         self.model_unficado = model_unficado
 
+    def run(self, message: dict, logger: logging.Logger):
+        """Ejecutra la regla de integración."""
+        try:
+            message_esquema = self.model_unficado.model_validate(message)
+            output_model = self.integration_strategy.modelo_unificado_mapping(
+                message_esquema
+            )
+        except ValidationError as e:
+            logger.error(
+                "Error antes de integración en validación %s", e.errors(), exc_info=True
+            )
+            raise e
+        self.integration_strategy.integrate(output_model)
+
     def register_function(self, bp: Blueprint):
         """
         Crea y registra una función de integración en el Blueprint proporcionado.
+        TODO: esto debe ser validado si es posible, actualmente no funciona!!
 
         Args:
             bp: Blueprint de Azure Functions donde se registrará la función de integración.
