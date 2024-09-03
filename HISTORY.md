@@ -1,5 +1,11 @@
 # History
 
+## 0.1.4 (2024-09-03)
+
+## Fixed
+- RESTIntegration ahora tambien soporte procesar con el modelo enviado.
+
+
 ## 0.1.3 (2024-09-02)
 
 ## Fixed

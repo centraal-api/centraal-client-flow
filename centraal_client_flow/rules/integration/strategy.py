@@ -201,8 +201,10 @@ class RESTIntegration(IntegrationStrategy):
             timeout=300,
         )
         response.raise_for_status()
-        return self.response_processor(response)
+        return self.response_processor(response, output_model)
 
-    def set_response_processor(self, processor: Callable[[requests.Response], Any]):
+    def set_response_processor(
+        self, processor: Callable[[requests.Response, BaseModel], Any]
+    ):
         """Configura un procesamiento de la respuesta."""
         self.response_processor = processor

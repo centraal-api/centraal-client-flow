@@ -1,20 +1,17 @@
 # centraal-client-flow
 
-<p align="center">
 <a href="https://pypi.python.org/pypi/centraal_client_flow">
     <img src="https://img.shields.io/pypi/v/centraal_client_flow.svg"
         alt = "Release Status">
 </a>
 
-<a href="https://github.com/centraal-api/centraal_client_flow/actions">
-    <img src="https://github.com/centraal-api/centraal_client_flow/actions/workflows/main.yml/badge.svg?branch=release" alt="CI Status">
+<a href="https://github.com/centraal-api/centraal-client-flow/actions">
+    <img src="https://github.com/centraal-api/centraal-client-flow/actions/workflows/dev.yml/badge.svg?branch=release" alt="CI Status">
 </a>
 
-<a href="https://centraal-api.github.io/centraal_client_flow/">
-    <img src="https://img.shields.io/website/https/centraal-api.github.io/centraal_client_flow/index.html.svg?label=docs&down_message=unavailable&up_message=available" alt="Documentation Status">
+<a href="https://centraal-api.github.io/centraal-client-flow/">
+    <img src="https://img.shields.io/website/https/centraal-api.github.io/centraal-client-flow/index.html.svg?label=docs&down_message=unavailable&up_message=available" alt="Documentation Status">
 </a>
-
-</p>
 
 
 `centraal-client-flow` es una librería de Python diseñada para facilitar la implementación de una una solución basada en eventos para la sincronización y consistencia de datos entre sistemas distribuidos de clientes utilizando Azure. Esta librería proporciona herramientas para manejar eventos, aplicar reglas de procesamiento, integrar con sistemas externos y mantener un esquema unificado de clientes.
