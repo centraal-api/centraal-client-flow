@@ -107,7 +107,7 @@ class RESTIntegration(IntegrationStrategy):
         self.method = method
         self.resource = resource
         self.mapping_function = mapping_function
-        self.response_processor = lambda r: r.json()
+        self.response_processor = lambda r, m: r.json()
         self._token: Optional[OAuthTokenPass] = None
 
     def _authenticate(self) -> OAuthTokenPass:
