@@ -114,7 +114,13 @@ class IntegrationRule:
             integration_strategy: Estrategia de integración a aplicar en los mensajes procesados.
             model_unficado: Modelo de esquema unificado para validar y mapear los mensajes recibidos.
         """
-        self.function_name = f"{integration_strategy.name.lower()}_{topic_name}_intrule"
+        if integration_strategy.name is not None:
+            self.function_name = (
+                f"{integration_strategy.name.lower()}_{topic_name}_intrule"
+            )
+        else:
+            self.function_name = f"{topic_name}_intrule"
+
         self.topic_name = topic_name
         self.connection_str = connection_str
         self.subscription_name = subscription_name

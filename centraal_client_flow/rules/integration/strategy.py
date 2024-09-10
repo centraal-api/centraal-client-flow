@@ -15,10 +15,12 @@ from centraal_client_flow.models.schemas import EntradaEsquemaUnificado
 class IntegrationStrategy(ABC):
     """Clase Abstracta para definir estrategias de integracion."""
 
-    name: str = None
+    name: Optional[str] = None
     logger: logging.Logger
 
-    def __init__(self, logger: Optional[logging.Logger] = None, name: str = None):
+    def __init__(
+        self, logger: Optional[logging.Logger] = None, name: Optional[str] = None
+    ):
         """
         Inicializa la estrategia de integración con un logger opcional.
 
@@ -29,7 +31,9 @@ class IntegrationStrategy(ABC):
         self.name = name
 
     @abstractmethod
-    def modelo_unificado_mapping(self, message: EntradaEsquemaUnificado) -> BaseModel:
+    def modelo_unificado_mapping(
+        self, message: EntradaEsquemaUnificado
+    ) -> Optional[BaseModel]:
         """Mapea el mensaje de entrada a un modelo unificado de salida.
 
         Args:
@@ -38,10 +42,9 @@ class IntegrationStrategy(ABC):
         Returns:
             Un modelo Pydantic que representa la salida mapeada.
         """
-        pass
 
     @abstractmethod
-    def integrate(self, output_model: BaseModel) -> dict:
+    def integrate(self, output_model: Optional[BaseModel]) -> Optional[dict]:
         """Realiza la integración utilizando el modelo de salida.
 
         Args:
@@ -50,7 +53,6 @@ class IntegrationStrategy(ABC):
         Returns:
             La respuesta de la integración, generalmente en formato JSON.
         """
-        pass
 
 
 @dataclass
@@ -87,7 +89,7 @@ class RESTIntegration(IntegrationStrategy):
         method: str = "POST",
         resource: str = "",
         mapping_function: Optional[
-            Callable[[EntradaEsquemaUnificado], BaseModel]
+            Callable[[EntradaEsquemaUnificado], Optional[BaseModel]]
         ] = None,
         logger: Optional[logging.Logger] = None,
     ):
@@ -102,7 +104,10 @@ class RESTIntegration(IntegrationStrategy):
             mapping_function: Una función opcional que define cómo mapear un
                 `EntradaEsquemaUnificado` a un modelo Pydantic.
         """
-        super().__init__(logger=logger, name=f"{method}_{mapping_function.__name__}")
+        if mapping_function is not None:
+            super().__init__(
+                logger=logger, name=f"{method}_{mapping_function.__name__}"
+            )
         self.oauth_config = oauth_config
         self.method = method
         self.resource = resource
@@ -138,7 +143,7 @@ class RESTIntegration(IntegrationStrategy):
         self._token = OAuthTokenPass(**token_data)
         return self._token
 
-    def _get_token(self) -> str:
+    def _get_token(self) -> Optional[str]:
         """Obtiene el token actual o lo renueva si ha expirado.
 
         Returns:
@@ -146,9 +151,13 @@ class RESTIntegration(IntegrationStrategy):
         """
         if self._token is None:
             self._authenticate()
-        return self._token.access_token
 
-    def modelo_unificado_mapping(self, message: EntradaEsquemaUnificado) -> BaseModel:
+        if self._token is not None:
+            return self._token.access_token
+
+    def modelo_unificado_mapping(
+        self, message: EntradaEsquemaUnificado
+    ) -> Optional[BaseModel]:
         """Mapea el mensaje de entrada a un modelo unificado de salida utilizando la
             función de mapeo proporcionada.
 
@@ -173,7 +182,7 @@ class RESTIntegration(IntegrationStrategy):
                 "No se ha proporcionado una función de mapeo personalizada."
             )
 
-    def integrate(self, output_model: BaseModel):
+    def integrate(self, output_model: Optional[BaseModel]) -> Optional[dict]:
         """Realiza la integración utilizando el modelo de salida mapeado.
 
         Args:
@@ -193,15 +202,19 @@ class RESTIntegration(IntegrationStrategy):
 
         url = f"{self.oauth_config.api_url}/{self.resource}"
 
-        response = requests.request(
-            self.method,
-            url,
-            json=output_model.model_dump(mode="json", exclude_none=True),
-            headers=headers,
-            timeout=300,
-        )
-        response.raise_for_status()
-        return self.response_processor(response, output_model)
+        if output_model is not None:
+
+            response = requests.request(
+                self.method,
+                url,
+                json=output_model.model_dump(mode="json", exclude_none=True),
+                headers=headers,
+                timeout=300,
+            )
+            response.raise_for_status()
+            return self.response_processor(response, output_model)
+        self.logger.info("Evento es ignorado.")
+        return None
 
     def set_response_processor(
         self, processor: Callable[[requests.Response, BaseModel], Any]

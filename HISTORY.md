@@ -1,5 +1,11 @@
 # History
 
+## 0.1.6 (2024-09-10)
+
+## Added
+- `RESTIntegration` se adiciona la capacidad de ignorar el evento.
+
+
 ## 0.1.5 (2024-09-03)
 
 ## Added
