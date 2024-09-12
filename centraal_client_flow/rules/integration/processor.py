@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from centraal_client_flow.models.schemas import (
     EntradaEsquemaUnificado,
     AuditoriaEntryIntegracion,
+    IDModel,
 )
 from centraal_client_flow.rules.integration.strategy import (
     IntegrationStrategy,
@@ -134,11 +135,13 @@ class IntegrationRule:
         self.subscription_name = subscription_name
         self.integration_strategy = integration_strategy
         self.model_unficado = model_unficado
+        self.id_esquema: Optional[IDModel] = None
 
     def run(self, message: dict, logger: logging.Logger) -> Optional[StrategyResult]:
         """Ejecutra la regla de integración."""
         try:
             message_esquema = self.model_unficado.model_validate(message)
+            self.id_esquema = message_esquema.id
             output_model = self.integration_strategy.modelo_unificado_mapping(
                 message_esquema
             )
@@ -147,6 +150,7 @@ class IntegrationRule:
                 "Error antes de integración en validación %s", e.errors(), exc_info=True
             )
             raise e
+
         return self.integration_strategy.integrate(output_model)
 
     def register_log(
@@ -156,13 +160,19 @@ class IntegrationRule:
         container_name: str,
     ):
         container = cosmos_client.get_container_client(container_name)
-        entry = AuditoriaEntryIntegracion(
-            regla=self.function_name, contenido=result.bodysent, sucess=result.success
-        )
-        item_written = container.upsert_item(
-            entry.model_dump(mode="json", exclude_none=True),
-        )
-        return item_written
+        if self.id_esquema is not None:
+            entry = AuditoriaEntryIntegracion(
+                regla=self.function_name,
+                contenido=result.bodysent,
+                sucess=result.success,
+                id_entrada=self.id_esquema,
+            )
+            item_written = container.upsert_item(
+                entry.model_dump(mode="json", exclude_none=True),
+            )
+            return item_written
+
+        raise ValueError("No es posible usar registro del log.")
 
     def register_function(self, bp: Blueprint):
         """

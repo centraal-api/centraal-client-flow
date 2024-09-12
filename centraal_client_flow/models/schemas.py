@@ -91,7 +91,7 @@ class AuditoriaEntry(BaseModel):
 class AuditoriaEntryIntegracion(BaseModel):
     """Entrada para auditoria Integración."""
 
-    id: Optional[str]
+    id: Optional[str] = None
     id_entrada: IDModel
     regla: str
     contenido: dict
