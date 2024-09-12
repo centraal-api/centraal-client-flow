@@ -1,5 +1,11 @@
 # History
 
+## 0.1.7 (2024-09-12)
+
+## Added
+- `RESTIntegration` se incluye nuevo objeto de resultado de integracion que sirve para auditoria de integración.
+
+
 ## 0.1.6 (2024-09-10)
 
 ## Added

@@ -2,12 +2,20 @@
 
 import json
 import logging
+from typing import Optional
 
 from azure.functions import Blueprint, ServiceBusMessage
 from pydantic import ValidationError
 
-from centraal_client_flow.models.schemas import EntradaEsquemaUnificado
-from centraal_client_flow.rules.integration.strategy import IntegrationStrategy
+from centraal_client_flow.models.schemas import (
+    EntradaEsquemaUnificado,
+    AuditoriaEntryIntegracion,
+)
+from centraal_client_flow.rules.integration.strategy import (
+    IntegrationStrategy,
+    StrategyResult,
+)
+from centraal_client_flow.connections.cosmosdb import CosmosDBSingleton
 
 
 class FunctionBuilder:
@@ -127,7 +135,7 @@ class IntegrationRule:
         self.integration_strategy = integration_strategy
         self.model_unficado = model_unficado
 
-    def run(self, message: dict, logger: logging.Logger):
+    def run(self, message: dict, logger: logging.Logger) -> Optional[StrategyResult]:
         """Ejecutra la regla de integración."""
         try:
             message_esquema = self.model_unficado.model_validate(message)
@@ -139,7 +147,22 @@ class IntegrationRule:
                 "Error antes de integración en validación %s", e.errors(), exc_info=True
             )
             raise e
-        self.integration_strategy.integrate(output_model)
+        return self.integration_strategy.integrate(output_model)
+
+    def register_log(
+        self,
+        result: StrategyResult,
+        cosmos_client: CosmosDBSingleton,
+        container_name: str,
+    ):
+        container = cosmos_client.get_container_client(container_name)
+        entry = AuditoriaEntryIntegracion(
+            regla=self.function_name, contenido=result.bodysent, sucess=result.success
+        )
+        item_written = container.upsert_item(
+            entry.model_dump(mode="json", exclude_none=True),
+        )
+        return item_written
 
     def register_function(self, bp: Blueprint):
         """

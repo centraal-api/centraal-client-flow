@@ -85,3 +85,21 @@ class AuditoriaEntry(BaseModel):
     new_value: Optional[Any]
     old_value: Optional[Any]
     fecha_evento: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    regla: str
+
+
+class AuditoriaEntryIntegracion(BaseModel):
+    """Entrada para auditoria Integración."""
+
+    id: Optional[str]
+    id_entrada: IDModel
+    regla: str
+    contenido: dict
+    sucess: bool
+    fecha_evento: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @model_validator(mode="after")
+    def valid_model(self) -> Self:
+        """Asigna ID."""
+        self.id = f"{self.id_entrada.model_dump(mode='json')}-{self.fecha_evento.strftime('%Y%m%d')}"
+        return self

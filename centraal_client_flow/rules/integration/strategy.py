@@ -44,7 +44,7 @@ class IntegrationStrategy(ABC):
         """
 
     @abstractmethod
-    def integrate(self, output_model: Optional[BaseModel]) -> Optional[dict]:
+    def integrate(self, output_model: Optional[BaseModel]) -> Optional[Any]:
         """Realiza la integración utilizando el modelo de salida.
 
         Args:
@@ -53,6 +53,15 @@ class IntegrationStrategy(ABC):
         Returns:
             La respuesta de la integración, generalmente en formato JSON.
         """
+
+
+@dataclass
+class StrategyResult:
+    """Resultado de Estrategia."""
+
+    success: bool
+    response: dict
+    bodysent: dict
 
 
 @dataclass
@@ -112,7 +121,9 @@ class RESTIntegration(IntegrationStrategy):
         self.method = method
         self.resource = resource
         self.mapping_function = mapping_function
-        self.response_processor = lambda r, m: r.json()
+        self.response_processor = lambda r, m: StrategyResult(
+            success=True, response=r, bodysent=m
+        )
         self._token: Optional[OAuthTokenPass] = None
 
     def _authenticate(self) -> OAuthTokenPass:
@@ -154,6 +165,7 @@ class RESTIntegration(IntegrationStrategy):
 
         if self._token is not None:
             return self._token.access_token
+        raise ValueError("error en autenticación")
 
     def modelo_unificado_mapping(
         self, message: EntradaEsquemaUnificado
@@ -177,19 +189,18 @@ class RESTIntegration(IntegrationStrategy):
                     "El mensaje debe ser una instancia de EntradaEsquemaUnificado"
                 )
             return self.mapping_function(message)
-        else:
-            raise NotImplementedError(
-                "No se ha proporcionado una función de mapeo personalizada."
-            )
+        raise NotImplementedError(
+            "No se ha proporcionado una función de mapeo personalizada."
+        )
 
-    def integrate(self, output_model: Optional[BaseModel]) -> Optional[dict]:
+    def integrate(self, output_model: Optional[BaseModel]) -> Optional[StrategyResult]:
         """Realiza la integración utilizando el modelo de salida mapeado.
 
         Args:
             output_model: El modelo de datos ya mapeado que se enviará a la integración.
 
         Returns:
-            La respuesta de la integración en formato JSON.
+            La respuesta defina en response_processor.
 
         Raises:
             HTTPError: Si la solicitud HTTP a la API falla.
@@ -217,7 +228,7 @@ class RESTIntegration(IntegrationStrategy):
         return None
 
     def set_response_processor(
-        self, processor: Callable[[requests.Response, BaseModel], Any]
+        self, processor: Callable[[requests.Response, BaseModel], StrategyResult]
     ):
         """Configura un procesamiento de la respuesta."""
         self.response_processor = processor

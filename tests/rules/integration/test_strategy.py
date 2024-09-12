@@ -11,6 +11,7 @@ from centraal_client_flow.rules.integration.strategy import (
     RESTIntegration,
     OAuthConfigPassFlow,
     OAuthTokenPass,
+    StrategyResult,
 )
 
 
@@ -117,7 +118,7 @@ def test_integrate_success(mock_integration_strategy, mock_token_response):
         ):
             response = mock_integration_strategy.integrate(output_model)
 
-            assert response == {"success": True}
+            assert isinstance(response, StrategyResult)
 
 
 def test_integrate_failure(mock_integration_strategy):

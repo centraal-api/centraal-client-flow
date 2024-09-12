@@ -50,14 +50,20 @@ class Rule:
         model: El tipo de modelo Pydantic que la regla procesa.
         processor: El procesador que manejará la lógica de actualización.
         topics: Los tópicos a los que la regla está asociada.
+        name: El nombre asignado a la regla basado en el nombre de la clase del modelo.
     """
 
     model: Type[EventoBase]
     processor: UpdateProcessor
     topics: Set[str]
+    name: str = ""
+
+    def __post_init__(self):
+        """Inicializa el nombre de la regla basado en el nombre de la clase del modelo."""
+        self.name = self.model.__name__
 
     def process_rule(
-        self, data: Type[EventoBase], current: EntradaEsquemaUnificado
+        self, data: EventoBase, current: Optional[EntradaEsquemaUnificado]
     ) -> EntradaEsquemaUnificado:
         """
         Procesa una entrada de datos usando la regla definida.
@@ -203,7 +209,9 @@ class RuleProcessor:
                 event_model.id, self.rule_selector.modelo_unificado
             )
             processed_data = rule.process_rule(event_model, current_data)
-            changes = self.detect_changes(current_data, processed_data, event_model.id)
+            changes = self.detect_changes(
+                current_data, processed_data, event_model.id, rule.name
+            )
 
             if len(changes) == 1 and changes[0].subesquema == "No Changes":
                 self.record_auditoria(changes)
@@ -222,7 +230,7 @@ class RuleProcessor:
     def save_unified_model(
         self,
         new_data: EntradaEsquemaUnificado,
-    ) -> EntradaEsquemaUnificado:
+    ) -> dict:
         """
         Guarda el modelo de EntradaEsquemaUnificado actualizado en Cosmos DB.
 
@@ -255,7 +263,7 @@ class RuleProcessor:
             )
 
     def get_current_entrada(
-        self, id_entrada: IDModel, model_unificado: type[EntradaEsquemaUnificado]
+        self, id_entrada: IDModel, model_unificado: EntradaEsquemaUnificado
     ) -> Optional[EntradaEsquemaUnificado]:
         """
         Recupera el registro actual desde Cosmos DB basado en el ID proporcionado.
@@ -281,6 +289,7 @@ class RuleProcessor:
         current_data: Optional[EntradaEsquemaUnificado],
         updated_data: EntradaEsquemaUnificado,
         id_model: IDModel,
+        regla_name: str,
     ) -> List[AuditoriaEntry]:
         """
         Detecta cambios entre los datos actuales y los actualizados en el modelo EntradaEsquemaUnificado.
@@ -306,6 +315,7 @@ class RuleProcessor:
                     campo=field_name,
                     new_value=new_value,
                     old_value=old_value,
+                    regla=regla_name,
                 )
             )
 
@@ -353,6 +363,7 @@ class RuleProcessor:
                     campo="Ninguno",
                     new_value="No cambios",
                     old_value="No cambios",
+                    regla=regla_name,
                 )
             )
 
