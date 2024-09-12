@@ -1,5 +1,11 @@
 # History
 
+## 0.1.8 (2024-09-12)
+
+## Fixed
+- `IntegrationRule` Cuando existe un error de validación se devuelve un resultado no exitoso.
+
+
 ## 0.1.7 (2024-09-12)
 
 ## Added

@@ -149,7 +149,11 @@ class IntegrationRule:
             logger.error(
                 "Error antes de integración en validación %s", e.errors(), exc_info=True
             )
-            raise e
+            return StrategyResult(
+                success=False,
+                response={"error_validacion": e.errors()},
+                bodysent={"error_Validacion": True},
+            )
 
         return self.integration_strategy.integrate(output_model)
 
