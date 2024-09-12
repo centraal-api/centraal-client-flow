@@ -151,7 +151,7 @@ class IntegrationRule:
             )
             return StrategyResult(
                 success=False,
-                response={"error_validacion": e.errors()},
+                response={"error_validacion": str(e.errors())},
                 bodysent={"error_Validacion": True},
             )
 
@@ -170,6 +170,7 @@ class IntegrationRule:
                 contenido=result.bodysent,
                 sucess=result.success,
                 id_entrada=self.id_esquema,
+                response=result.response,
             )
             item_written = container.upsert_item(
                 entry.model_dump(mode="json", exclude_none=True),

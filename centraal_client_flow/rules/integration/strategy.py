@@ -225,7 +225,11 @@ class RESTIntegration(IntegrationStrategy):
             response.raise_for_status()
             return self.response_processor(response, output_model)
         self.logger.info("Evento es ignorado.")
-        return None
+        return StrategyResult(
+            success=True,
+            response={"evento_ignorado": True},
+            bodysent={"evento_ignorado": True},
+        )
 
     def set_response_processor(
         self, processor: Callable[[requests.Response, BaseModel], StrategyResult]

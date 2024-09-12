@@ -1,7 +1,7 @@
 """Modelos de pydantic comunes."""
 
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from pydantic import BaseModel, Field, model_serializer, model_validator
 from typing_extensions import Self
@@ -96,6 +96,7 @@ class AuditoriaEntryIntegracion(BaseModel):
     regla: str
     contenido: dict
     sucess: bool
+    response: Union[str, dict, list]
     fecha_evento: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @model_validator(mode="after")
