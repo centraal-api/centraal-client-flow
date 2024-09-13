@@ -91,17 +91,9 @@ class AuditoriaEntry(BaseModel):
 class AuditoriaEntryIntegracion(BaseModel):
     """Entrada para auditoria Integración."""
 
-    id: Optional[str] = None
-    id_entrada: IDModel
+    id: IDModel
     regla: str
     contenido: dict
     sucess: bool
     response: Union[str, dict, list]
     fecha_evento: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-    @model_validator(mode="after")
-    def valid_model(self) -> Self:
-        """Asigna ID."""
-        # pylint: disable=no-member
-        self.id = f"{self.id_entrada.model_dump(mode='json')}-{self.fecha_evento.strftime('%Y%m%d')}"
-        return self

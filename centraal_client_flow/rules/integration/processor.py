@@ -166,10 +166,10 @@ class IntegrationRule:
         container = cosmos_client.get_container_client(container_name)
         if self.id_esquema is not None:
             entry = AuditoriaEntryIntegracion(
+                id=self.id_esquema,
                 regla=self.function_name,
                 contenido=result.bodysent,
                 sucess=result.success,
-                id_entrada=self.id_esquema,
                 response=result.response,
             )
             item_written = container.upsert_item(

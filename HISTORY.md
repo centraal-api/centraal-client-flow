@@ -1,5 +1,11 @@
 # History
 
+## 0.1.9 (2024-09-12)
+
+## Fixed
+- `AuditoriaEntryIntegracion` Dejar el ID para trazar a nivel de ID y regla.
+
+
 ## 0.1.8 (2024-09-12)
 
 ## Fixed
