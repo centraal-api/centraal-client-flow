@@ -90,6 +90,10 @@ class OAuthTokenPass:
     signature: str
     expires_in: int = 1800
 
+    def __post_init__(self):
+        if isinstance(self.issued_at, str):
+            self.issued_at = int(self.issued_at)
+
 
 class RESTIntegration(IntegrationStrategy):
     """Estrategia de integracion basada en REST."""

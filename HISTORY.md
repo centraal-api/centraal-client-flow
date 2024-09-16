@@ -1,5 +1,11 @@
 # History
 
+## 0.1.11 (2024-09-16)
+
+## Fixed
+- `RESTIntegration` soportar que no es entero.
+
+
 ## 0.1.10 (2024-09-16)
 
 ## Fixed
