@@ -1,5 +1,11 @@
 # History
 
+## 0.1.10 (2024-09-16)
+
+## Fixed
+- `RESTIntegration` manejar renovación del token.
+
+
 ## 0.1.9 (2024-09-12)
 
 ## Fixed

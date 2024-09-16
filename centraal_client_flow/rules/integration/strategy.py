@@ -1,6 +1,7 @@
 """Estrategias. """
 
 import logging
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
@@ -87,6 +88,7 @@ class OAuthTokenPass:
     token_type: str
     issued_at: int
     signature: str
+    expires_in: int = 1800
 
 
 class RESTIntegration(IntegrationStrategy):
@@ -164,6 +166,11 @@ class RESTIntegration(IntegrationStrategy):
             self._authenticate()
 
         if self._token is not None:
+            current_time = int(time.time())
+            expiration_time = self._token.issued_at / 1000 + self._token.expires_in
+            if current_time >= expiration_time:
+                self.logger.info("El token ha expirado. Renovando...")
+                self._authenticate()
             return self._token.access_token
         raise ValueError("error en autenticación")
 
