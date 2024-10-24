@@ -1,7 +1,7 @@
 """Conexiones a service bus."""
 
 import json
-from typing import Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable, Optional
 
 from azure.servicebus import ServiceBusClient, ServiceBusMessage
 
@@ -10,8 +10,8 @@ from azure.servicebus import ServiceBusClient, ServiceBusMessage
 class IServiceBusClient(Protocol):
     """Interfaz."""
 
-    client: ServiceBusClient = None
-    connection_str: str = None
+    client: Optional[ServiceBusClient] = None
+    connection_str: Optional[str] = None
 
     def send_message_to_queue(self, message: dict, session_id: str, queue_name: str):
         """Envía un mensaje a la cola de Service Bus especificada.
@@ -27,8 +27,9 @@ class ServiceBusClientSingleton(IServiceBusClient):
     """Singleton para manejar la conexión a Azure Service Bus."""
 
     _instance = None
-    client: ServiceBusClient = None
-    connection_str: str = None
+    client: Optional[ServiceBusClient] = None
+    connection_str: Optional[str] = None
+    senders = {}
 
     def __new__(cls, connection_str: str):
         """Crea una instancia única de ServiceBusClientSingleton si no existe.
@@ -42,19 +43,25 @@ class ServiceBusClientSingleton(IServiceBusClient):
             cls._instance.client = ServiceBusClient.from_connection_string(
                 connection_str
             )
+
         return cls._instance
+
+    def get_sender(self, queue_name: str):
+        """Envía un mensaje a la cola de Service Bus especificada."""
+        if queue_name not in self.senders and self.client:
+            self.senders[queue_name] = self.client.get_queue_sender(queue_name)
+        return self.senders[queue_name]
 
     def send_message_to_queue(self, message: dict, session_id: str, queue_name: str):
         """Envía un mensaje a la cola de Service Bus especificada. Concreta"""
-        sender = self.client.get_queue_sender(queue_name)
+        sender = self.get_sender(queue_name)
         msg = ServiceBusMessage(body=json.dumps(message))
         msg.session_id = session_id
-
-        with sender:
-            sender.send_messages(msg)
+        sender.send_messages(msg)
 
     def close(self):
-        """Cierra la conexión a Service Bus y resetea la instancia del Singleton."""
+        """Cierra la conexión con Azure Service Bus."""
+        for sender in self.senders.values():
+            sender.close()
         if self.client:
             self.client.close()
-            ServiceBusClientSingleton._instance = None
