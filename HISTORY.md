@@ -1,5 +1,11 @@
 # History
 
+## 0.1.12 (2024-10-24)
+
+## Added
+- `ServiceBusClientSingleton` no crear senders y los trata de reusar.
+
+
 ## 0.1.11 (2024-09-16)
 
 ## Fixed
