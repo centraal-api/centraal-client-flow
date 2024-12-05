@@ -1,6 +1,6 @@
 # History
 
-## 0.1.13 (2024-10-24)
+## 0.1.13 (2024-12-05)
 
 ### Fixed
 - `IntegrationRule`: Fixed message decoding for ServiceBusMessage handling.
