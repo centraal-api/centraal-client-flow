@@ -1,72 +1,71 @@
 # History
 
+## 0.1.13 (2024-10-24)
+
+### Fixed
+- `IntegrationRule`: Fixed message decoding for ServiceBusMessage handling.
+
+### Added
+- `EventProcessor`: Added helper functions for Pydantic validation error serialization.
+- `IntegrationRule`: Enhanced error handling and logging capabilities.
+- `IntegrationRuleV2`: Created new version with simplified integration logic.
+
+
 ## 0.1.12 (2024-10-24)
 
-## Added
-- `ServiceBusClientSingleton` no crear senders y los trata de reusar.
-
+### Added
+- `ServiceBusClientSingleton`: Optimized to reuse existing senders instead of creating new ones.
 
 ## 0.1.11 (2024-09-16)
 
-## Fixed
-- `RESTIntegration` soportar que no es entero.
-
+### Fixed
+- `RESTIntegration`: Added support for non-integer values.
 
 ## 0.1.10 (2024-09-16)
 
-## Fixed
-- `RESTIntegration` manejar renovación del token.
-
+### Fixed
+- `RESTIntegration`: Improved token renewal handling.
 
 ## 0.1.9 (2024-09-12)
 
-## Fixed
-- `AuditoriaEntryIntegracion` Dejar el ID para trazar a nivel de ID y regla.
-
+### Fixed
+- `AuditoriaEntryIntegracion`: Preserved ID for tracing at ID and rule level.
 
 ## 0.1.8 (2024-09-12)
 
-## Fixed
-- `IntegrationRule` Cuando existe un error de validación se devuelve un resultado no exitoso.
-
+### Fixed
+- `IntegrationRule`: Returns unsuccessful result when validation error occurs.
 
 ## 0.1.7 (2024-09-12)
 
-## Added
-- `RESTIntegration` se incluye nuevo objeto de resultado de integracion que sirve para auditoria de integración.
-
+### Added
+- `RESTIntegration`: Added new integration result object for integration auditing.
 
 ## 0.1.6 (2024-09-10)
 
-## Added
-- `RESTIntegration` se adiciona la capacidad de ignorar el evento.
-
+### Added
+- `RESTIntegration`: Added capability to ignore events.
 
 ## 0.1.5 (2024-09-03)
 
-## Added
-- `IntegrationRule` se adiciona un metodo que ejecuta la regla de integración.
-
+### Added
+- `IntegrationRule`: Added method to execute integration rule.
 
 ## 0.1.4 (2024-09-03)
 
-## Fixed
-- RESTIntegration ahora tambien soporte procesar con el modelo enviado.
-
+### Fixed
+- `RESTIntegration`: Added support for processing with provided model.
 
 ## 0.1.3 (2024-09-02)
 
-## Fixed
-- Debe ser un string representando en Json cuando se envia hacia el topic.
-
-
+### Fixed
+- Improved JSON string handling when sending to topics.
 
 ## 0.1.2 (2024-09-02)
 
-## Fixed
-- Evitar cambiar a str el sjon cuando se informa a los topics.
-
+### Fixed
+- Prevented unnecessary JSON string conversion when informing topics.
 
 ## 0.1.0 (2024-08-13)
 
-* First release on PyPI.
+- First release on PyPI.
