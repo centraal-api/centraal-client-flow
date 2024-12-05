@@ -121,7 +121,7 @@ class IntegrationRule(ABC):
     ):
         """Ejecuta la regla de integración."""
         if isinstance(message, ServiceBusMessage):
-            message = json.loads(message.message)
+            message = json.loads(message.get_body().decode("utf-8"))
 
         message_esquema = self._validate_modelo_unificado(message)
 

@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock
 
 import pytest
+import json
 
 from azure.functions import ServiceBusMessage
 from pydantic import BaseModel
@@ -57,6 +58,16 @@ def setup_integration_rule() -> tuple[IntegrationRule, MagicMock]:
 def test_run_success(setup_integration_rule: tuple[IntegrationRule, MagicMock]):
     rule, cosmos_client = setup_integration_rule
     message = {"id": "123", "data": {"data": "test"}}
+    result = rule.run(message, cosmos_client)
+    assert result.success is True
+
+
+def test_run_success_with_service_bus_message(
+    setup_integration_rule: tuple[IntegrationRule, MagicMock]
+):
+    rule, cosmos_client = setup_integration_rule
+    message_content = {"id": "123", "data": {"data": "test"}}
+    message = ServiceBusMessage(body=json.dumps(message_content))
     result = rule.run(message, cosmos_client)
     assert result.success is True
 
