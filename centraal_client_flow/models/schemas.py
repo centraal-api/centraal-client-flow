@@ -39,6 +39,8 @@ class IDModel(BaseModel):
             if "separator" in field_names:
                 field_names.pop("separator")
             field_names = field_names.keys()
+            if len(field_names) == 0:
+                raise ValueError("No se definieron suficientes campos para el Modelo")
             values = data.split(sep)
             if len(values) != len(field_names):
                 raise ValueError(

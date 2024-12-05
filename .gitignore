@@ -110,3 +110,5 @@ site/
 # vscode extension - local history
 .history/
 test.ipynb
+
+test_uso_locales/
