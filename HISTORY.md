@@ -1,5 +1,13 @@
 # History
 
+
+## 0.1.14 (2024-12-14)
+
+### Fixed
+- `serialize_validation_errors`: Fix the serialization problem of exceptions.
+
+
+
 ## 0.1.13 (2024-12-05)
 
 ### Fixed
