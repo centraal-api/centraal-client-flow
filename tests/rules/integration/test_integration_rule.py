@@ -1,12 +1,14 @@
 # test_integration_rule.py
 
+from typing_extensions import Self
 from unittest.mock import MagicMock
+
 
 import pytest
 import json
 
 from azure.functions import ServiceBusMessage
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from centraal_client_flow.rules.integration.v2 import IntegrationRule, IntegrationResult
 from centraal_client_flow.models.schemas import EntradaEsquemaUnificado, IDModel
@@ -17,6 +19,27 @@ class MockIntegrationRule(IntegrationRule):
     def integrate(
         self, entrada_esquema_unificado: EntradaEsquemaUnificado
     ) -> IntegrationResult:
+        return IntegrationResult(
+            success=True,
+            response={"status": "success", "code": 200},
+            bodysent={"status": "success", "code": 200},
+        )
+
+
+class MockModelRaiseError(BaseModel):
+    id: str
+
+    @model_validator(mode="after")
+    def validate_model(self) -> Self:
+        raise ValueError("Error en validación del modelo unificado")
+
+
+class MockIntegrationRuleModelValidator(IntegrationRule):
+    def integrate(
+        self, entrada_esquema_unificado: EntradaEsquemaUnificado
+    ) -> IntegrationResult:
+
+        MockModelRaiseError(id="123")
         return IntegrationResult(
             success=True,
             response={"status": "success", "code": 200},
@@ -100,3 +123,25 @@ def test_retry_with_exponential_backoff(setup_integration_rule):
     result = rule._retry_with_exponential_backoff(func)
     assert result == "success"
     assert func.call_count == 2
+
+
+@pytest.fixture
+def setup_integration_rule_model_validator() -> tuple[IntegrationRule, MagicMock]:
+    logger = MagicMock()
+    cosmos_client = MagicMock(spec=CosmosDBSingleton)
+    rule = MockIntegrationRuleModelValidator(
+        name="test_topic",
+        model_unficado=MockEntradaEsquemaUnificado,
+        logger=logger,
+        container_name_aud="test_container",
+    )
+    return rule, cosmos_client
+
+
+def test_run_success_model_validator(
+    setup_integration_rule_model_validator: tuple[IntegrationRule, MagicMock]
+):
+    rule, cosmos_client = setup_integration_rule_model_validator
+    message = {"id": "123", "data": {"data": "test"}}
+    result = rule.run(message, cosmos_client)
+    assert result.success is False

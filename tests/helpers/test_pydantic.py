@@ -20,7 +20,7 @@ def errors_fixture() -> List[ErrorDetails]:
             loc=("body", "username"),
             msg="field required",
             input=None,
-            ctx={},
+            ctx={"error": ValueError("Error modelo unificado")},
         ),
         ErrorDetails(
             type="type_error.integer",
@@ -35,7 +35,8 @@ def errors_fixture() -> List[ErrorDetails]:
 @pytest.fixture(name="expected_json")
 def expected_json_fixture() -> str:
     return (
-        '[{"type": "value_error.missing", "loc": ["body", "username"], "msg": "field required", "input": null, "ctx": {}}, '
+        '[{"type": "value_error.missing", "loc": ["body", "username"], "msg": "field required", "input": null, '
+        '"ctx": {"error": {"error_type": "ValueError", "error_message": "Error modelo unificado"}}}, '
         '{"type": "type_error.integer", "loc": ["body", "age"], "msg": "value is not a valid integer", "input": null, "ctx": {}}]'
     )
 

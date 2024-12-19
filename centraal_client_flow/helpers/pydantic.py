@@ -5,6 +5,25 @@ import json
 from pydantic_core import ErrorDetails
 
 
+def _custom_serializer(obj):
+    """
+    Custom serializer for objects not serializable by default json code.
+
+    Args:
+        obj: The object to serialize.
+
+    Returns:
+        A serializable representation of the object.
+    """
+    if isinstance(obj, Exception):
+        return {
+            "error_type": type(obj).__name__,
+            "error_message": str(obj),
+        }
+    # Add more custom serialization rules if needed
+    return str(obj)  # Fallback to string representation
+
+
 def serialize_validation_errors(errors: list[ErrorDetails]) -> str:
     """
     Serializa los errores de validación en una cadena JSON adecuada para Cosmos DB.
@@ -15,7 +34,7 @@ def serialize_validation_errors(errors: list[ErrorDetails]) -> str:
     Returns:
         Cadena JSON que representa los errores de validación.
     """
-    return json.dumps(errors, ensure_ascii=False)
+    return json.dumps(errors, default=_custom_serializer, ensure_ascii=False)
 
 
 def built_valid_json_str_with_aditional_info(
