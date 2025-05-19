@@ -1,5 +1,10 @@
 # History
 
+## 0.1.15 (2025-05-19)
+
+### Fixed
+- `ServiceBusClientSingleton`: Mejoras para eviatar errores.
+
 
 ## 0.1.14 (2024-12-14)
 
