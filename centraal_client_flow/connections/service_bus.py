@@ -109,7 +109,7 @@ class ServiceBusClientSingleton(IServiceBusClient):
                 msg = ServiceBusMessage(body=json.dumps(message))
                 msg.session_id = session_id
                 sender.send_messages(msg)
-                logger.info(
+                logger.debug(
                     f"Successfully sent message to queue {queue_name} with session_id {session_id}")
                 return
             except (ServiceBusError, ServiceBusConnectionError, ServiceRequestError, AttributeError) as e:

@@ -1,5 +1,11 @@
 # History
 
+## 0.1.16 (2025-05-19)
+
+### Fixed
+- `ServiceBusClientSingleton`: configurar nivel de logging.
+
+
 ## 0.1.15 (2025-05-19)
 
 ### Fixed
