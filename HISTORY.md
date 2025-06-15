@@ -1,5 +1,19 @@
 # History
 
+## 0.1.17 (2025-06-15)
+
+### Added
+- **Tests unitarios para la clase `Rule`**
+  - Archivo: `tests/rules/test_update.py`
+  - Cobertura completa de funcionalidad de `Rule`
+  - Tests para inicialización, procesamiento y manejo de casos edge
+
+### Fixed
+- **Método `Rule.process_rule()`**
+  - Manejo correcto cuando `current_registro` es `None`
+  - Creación apropiada de copias profundas de los datos
+
+
 ## 0.1.16 (2025-05-19)
 
 ### Fixed
