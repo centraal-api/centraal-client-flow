@@ -75,7 +75,10 @@ class Rule:
         Returns:
             EntradaEsquemaUnificado: El registro actualizado.
         """
-        return self.processor.process_message(data, current)
+        data_copy = data.model_copy(deep=True)
+        current_copy = current.model_copy(deep=True) if current else None
+        result = self.processor.process_message(data_copy, current_copy)
+        return result
 
 
 class RuleSelector:
@@ -181,51 +184,6 @@ class RuleProcessor:
         self.service_bus_client = service_bus_client
         self.cosmos_client = cosmos_client
         self.rule_selector = rule_selector
-
-    def register_function(self, bp: Blueprint, bus_connection_name: str):
-        """
-        Registra una función para procesar mensajes desde una cola de Service Bus.
-
-        Parameters:
-            bp: El Blueprint que maneja las funciones de Azure.
-            bus_connection_name: nombre del app setting con la conecion del bus
-
-        Returns:
-            Blueprint: El Blueprint con la función registrada.
-        """
-        function_name = f"{self.queue_name}-rule-processor"
-
-        @bp.function_name(name=function_name)
-        @bp.service_bus_queue_trigger(
-            arg_name="msg",
-            queue_name=self.queue_name,
-            connection=bus_connection_name,
-            is_sessions_enabled=True,
-        )
-        def process_function(msg: ServiceBusMessage):
-            data = json.loads(msg.get_body().decode("utf-8"))
-            event_model, rule = self.rule_selector.select_rule(data)
-            current_data = self.get_current_entrada(
-                event_model.id, self.rule_selector.modelo_unificado
-            )
-            processed_data = rule.process_rule(event_model, current_data)
-            changes = self.detect_changes(
-                current_data, processed_data, event_model.id, rule.name
-            )
-
-            if len(changes) == 1 and changes[0].subesquema == "No Changes":
-                self.record_auditoria(changes)
-                return
-
-            self.save_unified_model(processed_data)
-            self.record_auditoria(changes)
-            topics_to_notify = self.rule_selector.get_topics_by_changes(
-                rule.topics, changes
-            )
-            self.publish_to_topics(processed_data, topics_to_notify)
-            return
-
-        return bp
 
     def save_unified_model(
         self,
