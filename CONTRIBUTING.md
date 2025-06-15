@@ -112,7 +112,9 @@ Then run:
 
 ```
 $ poetry version patch # possible: major / minor / patch
-$ git tag {version}
+$ git commit
+$ git push
+$ git tag v.{version}
 $ git push
 $ git push --tags
 ```
