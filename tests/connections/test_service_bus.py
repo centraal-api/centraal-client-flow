@@ -1,12 +1,21 @@
 """Tests for the ServiceBusClientSingleton class."""
 
 # pylint: disable=C0116
+import threading
 from unittest.mock import patch, MagicMock
 
 import pytest
 from azure.servicebus import ServiceBusMessage
 
 from centraal_client_flow.connections.service_bus import ServiceBusClientSingleton
+
+
+@pytest.fixture(autouse=True)
+def reset_service_bus_singleton_between_tests():
+    """El singleton es proceso-global; sin reset los tests comparten mock/client viejos."""
+    ServiceBusClientSingleton._instance = None
+    yield
+    ServiceBusClientSingleton._instance = None
 
 
 @pytest.fixture(name="connection_str")
@@ -70,3 +79,22 @@ def test_send_message_to_queue(service_bus_client_singleton, mock_service_bus_cl
 
     service_bus_client_singleton.close()
     client.close.assert_called_once()
+
+
+def test_concurrent_send_message_to_queue(service_bus_client_singleton, mock_service_bus_client):
+    """Varios hilos enviando no deben fallar ni quedar bloqueados (regresión de carrera AMQP)."""
+    errors = []
+
+    def worker():
+        try:
+            service_bus_client_singleton.send_message_to_queue({"k": "v"}, "sess", "test-queue")
+        except Exception as e:
+            errors.append(e)
+
+    threads = [threading.Thread(target=worker) for _ in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=30)
+    assert not errors
+    assert all(not t.is_alive() for t in threads)
