@@ -2,6 +2,7 @@
 
 import json
 from abc import ABC, abstractmethod
+from contextlib import nullcontext
 from dataclasses import dataclass
 from typing import Any, List, Optional, Set, Tuple, Type
 
@@ -10,7 +11,10 @@ from azure.servicebus import ServiceBusMessage as SBMessage
 from pydantic import BaseModel, ValidationError
 
 from centraal_client_flow.connections.cosmosdb import CosmosDBSingleton
-from centraal_client_flow.connections.service_bus import IServiceBusClient
+from centraal_client_flow.connections.service_bus import (
+    IServiceBusClient,
+    ServiceBusClientSingleton,
+)
 from centraal_client_flow.helpers.logger import LoggerMixin
 from centraal_client_flow.models.schemas import (
     AuditoriaEntry,
@@ -339,9 +343,16 @@ class RuleProcessor:
             processed_data: Los datos procesados que se enviarán.
             topic_names: Lista de tópicos a los que se enviarán los datos.
         """
-        client = self.service_bus_client.client
-        for topic_name in topic_names:
-            body = processed_data.model_dump(mode="json", exclude_none=True)
-            with client.get_topic_sender(topic_name=topic_name) as sender:
-                message = SBMessage(body=json.dumps(body))
-                sender.send_messages(message)
+        bus = self.service_bus_client
+        lock_cm = (
+            bus.synchronize()
+            if isinstance(bus, ServiceBusClientSingleton)
+            else nullcontext()
+        )
+        with lock_cm:
+            client = bus.client
+            for topic_name in topic_names:
+                body = processed_data.model_dump(mode="json", exclude_none=True)
+                with client.get_topic_sender(topic_name=topic_name) as sender:
+                    message = SBMessage(body=json.dumps(body))
+                    sender.send_messages(message)
