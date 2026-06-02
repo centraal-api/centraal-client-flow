@@ -5,7 +5,11 @@ import logging
 import threading
 from typing import Protocol, runtime_checkable, Optional
 from azure.servicebus import ServiceBusClient, ServiceBusMessage
-from azure.servicebus.exceptions import ServiceBusError, ServiceBusConnectionError
+from azure.servicebus.exceptions import (
+    MessageSizeExceededError,
+    ServiceBusError,
+    ServiceBusConnectionError,
+)
 from azure.core.exceptions import ServiceRequestError
 import time
 
@@ -55,6 +59,22 @@ class IServiceBusClient(Protocol):
             queue_name: Nombre de la cola a la que se enviará el mensaje.
         """
 
+    def send_messages_batch_to_queue(
+        self,
+        items: list[tuple[dict, str]],
+        queue_name: str,
+    ) -> int:
+        """Envía múltiples mensajes a la cola usando un solo sender y batches.
+
+        Args:
+            items: Lista de tuplas (message_body, session_id).
+            queue_name: Nombre de la cola destino.
+
+        Returns:
+            Cantidad de mensajes enviados correctamente.
+        """
+        ...
+
 
 class ServiceBusClientSingleton(IServiceBusClient):
     """Singleton para manejar la conexión a Azure Service Bus.
@@ -64,7 +84,7 @@ class ServiceBusClientSingleton(IServiceBusClient):
 
     ``ServiceBusSender`` y la recreación del cliente bajo reintentos no son seguros entre
     hilos: un ``threading.Lock`` a nivel de instancia serializa ``send_message_to_queue``,
-    el uso de ``get_sender`` y ``close``.
+    ``send_messages_batch_to_queue``, el uso de ``get_sender`` y ``close``.
     """
 
     _instance = None
@@ -165,6 +185,77 @@ class ServiceBusClientSingleton(IServiceBusClient):
                         f"Attempt {attempt + 1} failed to send message to queue {queue_name}: {str(e)}")
                     time.sleep(self.RETRY_DELAY)
                     self._initialize_client()
+
+    def _send_batch_with_retry(self, sender, batch) -> int:
+        """Envía un batch con reintentos en errores de transporte."""
+        for attempt in range(self.MAX_RETRIES):
+            try:
+                count = len(batch)
+                if count == 0:
+                    return 0
+                sender.send_messages(batch)
+                logger.debug(f"Sent batch of {count} messages")
+                return count
+            except (
+                ServiceBusError,
+                ServiceBusConnectionError,
+                ServiceRequestError,
+                AttributeError,
+            ) as e:
+                if attempt == self.MAX_RETRIES - 1:
+                    logger.error(
+                        f"Failed to send message batch after {self.MAX_RETRIES} attempts: {str(e)}"
+                    )
+                    raise e
+                logger.warning(
+                    f"Attempt {attempt + 1} failed to send message batch: {str(e)}"
+                )
+                time.sleep(self.RETRY_DELAY)
+                self._initialize_client()
+        return 0
+
+    def send_messages_batch_to_queue(
+        self,
+        items: list[tuple[dict, str]],
+        queue_name: str,
+    ) -> int:
+        """Envía múltiples mensajes a la cola usando un solo sender y batches.
+
+        Usa ``get_sender`` para mantener un único sender durante toda la operación
+        y divide en batches cuando se excede el tamaño máximo de Azure Service Bus.
+
+        Si un flush falla después de que flushes anteriores tuvieron éxito, puede
+        haber entrega parcial; la excepción se propaga (semántica at-least-once).
+
+        Args:
+            items: Lista de tuplas (message_body, session_id).
+            queue_name: Nombre de la cola destino.
+
+        Returns:
+            Cantidad de mensajes enviados correctamente.
+        """
+        if not items:
+            return 0
+
+        messages_sent = 0
+        with self.get_sender(queue_name) as sender:
+            batch = sender.create_message_batch()
+            for message, session_id in items:
+                msg = ServiceBusMessage(body=json.dumps(message))
+                msg.session_id = str(session_id)
+                try:
+                    batch.add_message(msg)
+                except MessageSizeExceededError:
+                    messages_sent += self._send_batch_with_retry(sender, batch)
+                    batch = sender.create_message_batch()
+                    batch.add_message(msg)
+            if len(batch) > 0:
+                messages_sent += self._send_batch_with_retry(sender, batch)
+
+        logger.info(
+            f"Successfully sent {messages_sent} messages to queue {queue_name}"
+        )
+        return messages_sent
 
     def close(self):
         """Cierra la conexión con Azure Service Bus."""

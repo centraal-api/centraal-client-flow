@@ -1,5 +1,14 @@
 # History
 
+## 0.1.19 (2026-06-01)
+
+### Added
+- **`ServiceBusClientSingleton.send_messages_batch_to_queue`**
+  - Envía múltiples mensajes con un solo sender y `ServiceBusMessageBatch`
+  - Flush automático ante `MessageSizeExceededError`
+  - Reintentos en errores de transporte por flush
+- **`IServiceBusClient`**: nueva firma en el Protocol para batch send
+
 ## 0.1.17 (2025-06-15)
 
 ### Added
